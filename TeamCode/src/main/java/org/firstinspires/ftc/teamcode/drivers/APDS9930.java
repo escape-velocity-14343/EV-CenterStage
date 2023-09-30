@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.drivers;
 
 import android.util.Log;
 
@@ -6,20 +6,19 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchDevice;
 import com.qualcomm.robotcore.hardware.configuration.annotations.DeviceProperties;
-import com.qualcomm.robotcore.hardware.configuration.annotations.I2cDeviceType;
-import com.qualcomm.robotcore.util.TypeConversion;
 
-@I2cDeviceType
-@DeviceProperties(name = "APDS9960 Color/Proximity/Gesture Sensor", xmlTag = "APDS9960")
-public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
+@Deprecated
+//@I2cDeviceType
+@DeviceProperties(name = "APDS9930 Color/Proximity/Gesture Sensor", xmlTag = "APDS9930")
+public class APDS9930 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
     public final static I2cAddr ADDRESS = new I2cAddr(0x39);
-    public APDS9960(I2cDeviceSynch i2cDeviceSynch, boolean deviceClientIsOwned) {
+    public APDS9930(I2cDeviceSynch i2cDeviceSynch, boolean deviceClientIsOwned) {
         super(i2cDeviceSynch, deviceClientIsOwned);
         this.deviceClient.setI2cAddress(ADDRESS);
         super.registerArmingStateCallback(false);
         this.deviceClient.engage();
     }
-
+    @Deprecated
     @Override
     protected boolean doInitialize() {
         /*deviceClient.write8(0x80, 0b0000101);
@@ -70,6 +69,6 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
 
     @Override
     public String getDeviceName() {
-        return "APDS9960 Color/Proximity/Gesture Sensor";
+        return "APDS9930 Color/Proximity/Gesture Sensor";
     }
 }

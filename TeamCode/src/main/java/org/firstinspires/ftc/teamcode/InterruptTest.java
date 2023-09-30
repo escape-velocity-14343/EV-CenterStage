@@ -1,15 +1,18 @@
 package org.firstinspires.ftc.teamcode;
 
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
-
+@Config
 @TeleOp
-public class ProximityTest extends LinearOpMode {
+public class InterruptTest extends LinearOpMode {
+
+    public static int val = 0;
     @Override
     public void runOpMode() throws InterruptedException {
         ElapsedTime time = new ElapsedTime();
@@ -22,10 +25,11 @@ public class ProximityTest extends LinearOpMode {
 
         }
         while (opModeIsActive()) {
-            telemetry.addData("proximity",apds9960.getProximity());
+            if (val!=0)
+                apds9960.forceInt(val);
+            //telemetry.addData("proximity",apds9960.getProximity());
             telemetry.addData("time", time.milliseconds());
             telemetry.addData("interrupt", interrupt.getState());
-            telemetry.addData("pint", apds9960.pint());
             time.reset();
             telemetry.update();
 

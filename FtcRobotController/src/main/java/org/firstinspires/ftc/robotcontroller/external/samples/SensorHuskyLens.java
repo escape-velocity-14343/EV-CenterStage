@@ -60,7 +60,7 @@ import java.util.concurrent.TimeUnit;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 @TeleOp(name = "Sensor: HuskyLens", group = "Sensor")
-@Disabled
+
 public class SensorHuskyLens extends LinearOpMode {
 
     private final int READ_PERIOD = 1;
@@ -111,7 +111,7 @@ public class SensorHuskyLens extends LinearOpMode {
          * within the OpMode by calling selectAlgorithm() and passing it one of the values
          * found in the enumeration HuskyLens.Algorithm.
          */
-        huskyLens.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
+        huskyLens.selectAlgorithm(HuskyLens.Algorithm.COLOR_RECOGNITION);
 
         telemetry.update();
         waitForStart();
@@ -123,10 +123,6 @@ public class SensorHuskyLens extends LinearOpMode {
          * Note again that the device only recognizes the 36h11 family of tags out of the box.
          */
         while(opModeIsActive()) {
-            if (!rateLimit.hasExpired()) {
-                continue;
-            }
-            rateLimit.reset();
 
             /*
              * All algorithms, except for LINE_TRACKING, return a list of Blocks where a
