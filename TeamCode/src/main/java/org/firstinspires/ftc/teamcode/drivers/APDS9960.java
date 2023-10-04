@@ -8,6 +8,7 @@ import static org.firstinspires.ftc.teamcode.drivers.APDS9960.SensingMode.PROXIM
 
 import android.util.Log;
 
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchDevice;
@@ -27,6 +28,7 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         super.registerArmingStateCallback(false);
         this.deviceClient.engage();
     }
+
     enum SensingMode {
         PROXIMITY,
         COLOR,
@@ -156,5 +158,15 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
     @Override
     public void close() {
         setMode(OFF);
+    }
+
+    /**
+     *
+     * @param hmap the current robot hardware map
+     * @param name the name set in the configuration
+     * @return an initialized APDS9960
+     */
+    public static APDS9960 fromHMap(HardwareMap hmap, String name) {
+        return hmap.get(APDS9960.class, name);
     }
 }

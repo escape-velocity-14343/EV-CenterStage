@@ -9,7 +9,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 
 @Config
-public class AS5600 {
+public class AnalogEncoder {
     AnalogInput analog;
     InterpLUT lut = new InterpLUT();
 
@@ -22,7 +22,7 @@ public class AS5600 {
      * @param id   the device id from the RC config
      */
 
-    public AS5600(HardwareMap hMap, String id) {
+    public AnalogEncoder(HardwareMap hMap, String id) {
         analog = hMap.get(AnalogInput.class, id);
         lut.add(0,0);
         lut.add(12, 17);
