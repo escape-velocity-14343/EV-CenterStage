@@ -1,3 +1,6 @@
+This is the repository for FIRST Tech Challenge team 14343 Escape Velocity's 2023-2024 CENTERSTAGE Season using FTC SDK 9.0. 
+The README of the FTC SDK 9.0 is included below.
+
 ## NOTICE
 
 This repository contains the public FTC SDK for the CENTERSTAGE (2023-2024) competition season.
