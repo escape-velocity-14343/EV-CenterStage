@@ -57,7 +57,7 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
         currentMode = mode;
         if (mode == PROXIMITY) {
             deviceClient.write8(0x80, 0b0100101);
-            deviceClient.write8(0xAB, 0b0000000);
+            deviceClient.write8(0xAB, 0b0000010);
             deviceClient.write8(0x89, 0x20);
             deviceClient.write8(0x8B, 0xF0);
         }
