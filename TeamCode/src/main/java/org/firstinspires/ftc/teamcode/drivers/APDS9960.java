@@ -56,10 +56,12 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
     public void setMode(SensingMode mode) {
         currentMode = mode;
         if (mode == PROXIMITY) {
-            deviceClient.write8(0x80, 0b0100101);
-            deviceClient.write8(0xAB, 0b0000010);
-            deviceClient.write8(0x89, 0x20);
-            deviceClient.write8(0x8B, 0xF0);
+            deviceClient.write8(0x80, 0b00000101);
+            //deviceClient.write8(0xAB, 0b0000011);
+            deviceClient.write8(0x89, 0xB0);
+            deviceClient.write8(0x8B, 0x20);
+            //deviceClient.write8(0x8C,0b01100000);
+            //deviceClient.write8(0xE7,1);
         }
         else if (mode == COLOR) {
             deviceClient.write8(0x80, 0b0000011);
@@ -137,6 +139,12 @@ public class APDS9960 extends I2cDeviceSynchDevice<I2cDeviceSynch> {
     public void setATime(int time) {
         deviceClient.write8(0x81, time);
     }
+
+    /**
+     *
+     * @param val im not really sure
+     * @everyone @everyone help code not working
+     */
     public void forceInt(int val) {
         deviceClient.write8(0xE4, val);
     }
