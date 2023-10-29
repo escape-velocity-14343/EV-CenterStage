@@ -5,15 +5,16 @@ import com.arcrobotics.ftclib.util.InterpLUT;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 
-@Config
+
 public class AnalogEncoder {
     AnalogInput analog;
     InterpLUT lut = new InterpLUT();
 
-    double offset = 0;
+    double offset = 0.0;
 
 
 
@@ -31,9 +32,12 @@ public class AnalogEncoder {
     public double getDegrees() {
         double v = analog.getVoltage();
 
-
-        return AngleUnit.normalizeDegrees(v*360/3.3+offset);
+        return v*360.0/3.3+offset;
     }
+    public double getRawVoltage() {
+        return analog.getVoltage();
+    }
+
     public double getRadians() {
         return Math.toRadians(getDegrees());
     }

@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import static org.firstinspires.ftc.teamcode.subsystems.SwerveModule.compare;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.arcrobotics.ftclib.drivebase.RobotDrive;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -15,15 +17,25 @@ import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 
 
 @Config
-public class SwerveController {
-    public static double p = 0.001;
+public class SwerveController extends RobotDrive {
+    public static double p = 0.01;
     public static double i = 0.0;
-    public static double d = 0.0;
+    public static double d = 0.005;
 
-    public static double loffset = 0.0;
-    public static double roffset = 0.0;
+    public static double teleopHeadingInputGain = -0.07;
+
+    public static double teleopHeadingFeedforwardGain = 1;
+
+    public static double teleopHeadingChangeTolerance = 0.01;
+
+
 
     public static double headingwheelratio = 1.0;
+
+    public static double rotationConstant = 0.25974026;
+    public static double kTop = 1;
+    public static double kBottom = -1;
+    public static boolean optimize = true;
     double lt,rt;
     double jx;
     double jy;
@@ -31,18 +43,34 @@ public class SwerveController {
     double lx,ly,rx,ry;
     double[] powers = {0,0,0,0};
 
+    boolean rotationInput = false;
+    enum rotationMode {
+        HEADING_LOCK,
+        PSUEDO_LOCK,
+        LOCKLESS
+    }
+
+    rotationMode rotMode = rotationMode.PSUEDO_LOCK;
+
+    double lastHeading = 0;
+    PIDController headingPID  = new PIDController(0,0,0);
+
+
+
     Translation2d translation = new Translation2d();
-    SwerveModule left, right;
+    public SwerveModule left, right;
     IMU imu;
     Telemetry telemetry;
     VoltageSensor voltageSensor;
+    boolean headingLock = false;
+    double headingLockAngle = 0;
     public SwerveController(HardwareMap hMap, Telemetry telemetry) {
         this.telemetry = telemetry;
         left = new SwerveModule(new Motor(hMap,"bottomleft"),new Motor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
-        left.rot.setOffset(loffset);
+
         left.setSide(false);
         right = new SwerveModule(new Motor(hMap,"bottomright"),new Motor(hMap,"topright"),new AnalogEncoder(hMap,"rightrot"),telemetry);
-        right.rot.setOffset(roffset);
+
         right.setSide(true);
 
         imu = hMap.get(IMU.class,"imu 1");
@@ -57,10 +85,10 @@ public class SwerveController {
 
         powers = new double[]{jx, jy + rot, jx, jy - rot};
 
-        lx = normalize(powers, 1)[0];
-        ly = normalize(powers, 1)[1];
-        rx = normalize(powers, 1)[2];
-        ry = normalize(powers, 1)[3];
+        lx = left.normalize(powers, 1)[0];
+        ly = left.normalize(powers, 1)[1];
+        rx = left.normalize(powers, 1)[2];
+        ry = left.normalize(powers, 1)[3];
         lt = Math.atan2(ly,lx);
         rt = Math.atan2(ry,rx);
         lt = Math.toDegrees(lt);
@@ -70,8 +98,8 @@ public class SwerveController {
             right.podPidXY(rx,ry);
         }
         else {
-            left.podPid(0.0, left.rot.getDegrees());
-            right.podPid(0.0, right.rot.getDegrees());
+            left.podPid(0.0, left.getRotation());
+            right.podPid(0.0, right.getRotation());
         }
         //telemetry.addData("voltage", voltageSensor.getVoltage());
         //telemetry.addData("Left encoder", left.rot.getDegrees());
@@ -94,25 +122,73 @@ public class SwerveController {
     }
     public void driveFieldCentric(double x, double y, double rot) {
         double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        telemetry.addData("heading",Math.toDegrees(botHeading));
+
+        switch (rotMode) {
+            case HEADING_LOCK:
+                headingPID.setPID(Robot.kHeadingP, Robot.kHeadingI, Robot.kHeadingD);
+                headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
+                telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
+                rot = -headingPID.calculate(0);
+                telemetry.addData("rot", rot);
+                break;
+            case PSUEDO_LOCK:
+                // state switch if joystick pressed
+                if (!compare(rot, 0, 0.01)) {
+                    rotMode = rotationMode.LOCKLESS;
+                    break;
+                }
+                headingPID.setPID(Robot.kHeadingP, Robot.kHeadingI, Robot.kHeadingD);
+                headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
+                telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
+                rot = -headingPID.calculate(0);
+                telemetry.addData("rot", rot);
+                break;
+            case LOCKLESS:
+                // if no joystick input and no change in heading, state transition & set anglelock
+                if (compare(rot, 0, 0.01) && compare(AngleUnit.normalizeDegrees(botHeading-lastHeading), 0, teleopHeadingChangeTolerance)) {
+                    headingLockAngle = botHeading;
+                    rotMode = rotationMode.PSUEDO_LOCK;
+                    break;
+                }
+        }
+
+        lastHeading = botHeading;
+
+        // drive using inputs
         drive(x,y,rot,botHeading);
     }
     public void driveRobotCentric(double x, double y, double rot) {
         drive(x,y,rot,0);
     }
-    public double[] normalize(double[] values, double magnitude) {
-        double maxMagnitude = Math.abs(values[0]);
-        for (int i = 1; i < values.length; i++) {
-            double temp = Math.abs(values[i]);
-            if (maxMagnitude < temp) {
-                maxMagnitude = temp;
-            }
-        }
-        if (maxMagnitude>magnitude) {
-            for (int i = 0; i < values.length; i++) {
-                values[i] = (values[i] / maxMagnitude) * magnitude;
-            }
-        }
-        return values;
 
+    @Override
+    public void stop() {
+
+    }
+
+
+    /**
+     * @param lock Boolean - determines whether the lock will run or not.
+     * @param angle In Radians.
+     */
+    public void headingLock(boolean lock, double angle) {
+        if (lock) {
+            rotMode = rotationMode.HEADING_LOCK;
+        } else {
+            rotMode = rotationMode.PSUEDO_LOCK;
+        }
+        headingLockAngle = angle;
+    }
+
+    /**
+     * @param angle In Degrees.
+     */
+    public void toggleHeadingLock(double angle) {
+        if (rotMode == rotationMode.HEADING_LOCK) {
+            headingLock(false,headingLockAngle);
+        }
+        else
+            headingLock(true,Math.toRadians(angle));
     }
 }

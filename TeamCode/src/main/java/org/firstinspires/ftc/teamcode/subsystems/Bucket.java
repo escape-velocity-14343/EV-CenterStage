@@ -15,12 +15,12 @@ import org.firstinspires.ftc.teamcode.vision.ColorPixelDetection;
 @Config
 public class Bucket {
 
-    public static double intakePos = 0;
-    public static double outtakePos = 1;
-    public static double latchClosed = 0;
-    public static double latchIntake = 0.5;
-    public static double latchOpen = 1;
-    public static double proxTresh = 5;
+    public static double intakePos = 0.75;
+    public static double outtakePos = 0.35;
+    public static double latchClosed = 0.5;
+    public static double latchIntake = 0.2;
+    public static double latchOpen = 0.2;
+    public static double proxTresh = 100;
 
     Servo bucketServo;
     Servo latchServo;
@@ -36,32 +36,50 @@ public class Bucket {
 
     private static final double[] white = new double[]{1.35, 1.52, 1.23};
 
+    boolean lastLatch;
+
 
     public Bucket(HardwareMap hmap) {
         bucketServo = hmap.get(Servo.class, "bucket");
         latchServo = hmap.get(Servo.class,"latch");
-        position = new AnalogEncoder(hmap, "bucketPos");
+        //position = new AnalogEncoder(hmap, "bucketPos");
         topSensor = APDS9960.fromHMap(hmap, "bucketTop");
         bottomSensor = APDS9960.fromHMap(hmap, "bucketBottom");
     }
 
     public boolean intake() {
         bucketServo.setPosition(intakePos);
-        latchServo.setPosition(latchIntake);
         return true;
+    }
+    public void latch() {
+        latchServo.setPosition(latchClosed);
+        lastLatch = true;
+    }
+    public void unLatch() {
+        latchServo.setPosition(latchOpen);
+        lastLatch=false;
+    }
+    public void latchToggle() {
+        if (lastLatch) {
+            unLatch();
+        }
+        else
+            latch();
     }
 
 
     public boolean outtake() {
+        bucketServo.setPosition(outtakePos);
+
         return true;
     }
     public int pixelsIn() {
         int pixels = 0;
         if (topSensor.getProximity()<proxTresh) {
-            pixels = 2;
+            pixels ++;
         }
-        else if (bottomSensor.getProximity()<proxTresh) {
-            pixels = 1;
+         if (bottomSensor.getProximity()<proxTresh) {
+            pixels ++;
         }
         return pixels;
     }
