@@ -58,6 +58,9 @@ public class SwerveModule {
         top.resetEncoder();
         bottom.resetEncoder();
     }
+    /**
+    *@param false = left, true = right
+    */
     public void setSide(boolean right) {
         this.right = right;
         direction = (right? "right" : "left");
@@ -66,10 +69,18 @@ public class SwerveModule {
     public void setPid(double p, double i, double d) {
         this.pid.setPID(p, i, d);
     }
-
+    /**
+    * Moves the pod in a specific direction, with a specific speed
+    * @param vector the vector to move the pod in, relative to the robot
+    */
     public void podPid(Vector2d vector) {
         podPid(vector.magnitude(), vector.angle());
     }
+    /**
+    * Moves the pod in a specific direction, with a specific speed
+    * @param x the x value to move the pod in, relative to the robot
+    * @param y the y value to move the pod in, relative to the robot
+    */
     public void podPidXY(double x, double y) {
         podPid(Math.hypot(x,y), Math.toDegrees(Math.atan2(y,x)));
     }
@@ -82,7 +93,11 @@ public class SwerveModule {
        Arrays.sort(array);
        return array[rotationValueWindow/2];
     }
-
+    /**
+    * Moves the pod in a specific direction, with a specific speed
+    * @param wheel the speed to drive the pod
+    * @param heading the direction to move the pod in, relative to the robot
+    */
     public void podPid(double wheel, double heading) {
         double rotation = rot.getDegrees();
         telemetry.addData("rawVoltage"+direction, rot.getRawVoltage()*100.0);
