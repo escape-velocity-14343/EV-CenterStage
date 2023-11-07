@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes.testing;
 
 
 
@@ -18,12 +18,9 @@ import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
-import org.firstinspires.ftc.teamcode.subsystems.Bucket;
-import org.firstinspires.ftc.teamcode.vision.ColorPixelDetection;
-
 @Config
-@TeleOp
-public class PixelDetectionTest extends LinearOpMode {
+@TeleOp(group="aaaaa")
+public class ColorTest extends LinearOpMode {
     public static int wait = 10;
 
     @Override
@@ -38,17 +35,21 @@ public class PixelDetectionTest extends LinearOpMode {
         LynxModule module = hardwareMap.getAll(LynxModule.class).get(0);
         module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
 
-        Bucket bucket = new Bucket(hardwareMap);
-
 
         while(opModeInInit()) {
 
         }
         while (opModeIsActive()) {
-            ColorPixelDetection[] detections = bucket.getPixelColors();
-            for (int i = 0; i < detections.length; i++) {
-                telemetry.addData("Detection", detections[i].type);
-            }
+            NormalizedRGBA color = apds9960.getColor();
+            int rgb = (((int) color.red)<<16)|(((int) color.green)<<8)|((int) color.blue&0x0ff);
+            module.setConstant(rgb);
+
+
+            telemetry.addData("r",color.red);
+            telemetry.addData("g",color.green);
+            telemetry.addData("b",color.blue);
+            telemetry.addData("time", time.milliseconds());
+            time.reset();
             telemetry.update();
 
         }

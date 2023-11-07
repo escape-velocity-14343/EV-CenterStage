@@ -17,8 +17,7 @@ public class Slides {
         motor1 = new Motor(hMap,"slide1");
         tilt = hMap.get(Servo.class,"slidetilt");
         motor0.setInverted(true);
-        motor0.resetEncoder();
-        motor1.resetEncoder();
+
 
     }
     public void moveSlides(double power) {
@@ -37,5 +36,9 @@ public class Slides {
 
     public void tilt(double angle) {
         tilt.setPosition(angle);
+    }
+    public void reset() {
+        motor0.resetEncoder();
+        motor1.resetEncoder();
     }
 }

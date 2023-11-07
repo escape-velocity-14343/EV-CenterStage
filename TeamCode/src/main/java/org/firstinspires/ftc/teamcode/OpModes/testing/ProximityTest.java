@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes.testing;
 
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
 
-@TeleOp
+@TeleOp(group="aaaaa")
 public class ProximityTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {

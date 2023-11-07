@@ -20,7 +20,8 @@ public class Bucket {
     public static double latchClosed = 0.5;
     public static double latchIntake = 0.2;
     public static double latchOpen = 0.2;
-    public static double proxTresh = 100;
+    public static double proxTresh = 160;
+    public static double extendoOuttakePos = 0.1;
 
     Servo bucketServo;
     Servo latchServo;
@@ -51,6 +52,9 @@ public class Bucket {
         bucketServo.setPosition(intakePos);
         return true;
     }
+    public double latchPos() {
+        return latchServo.getPosition();
+    }
     public void latch() {
         latchServo.setPosition(latchClosed);
         lastLatch = true;
@@ -66,12 +70,18 @@ public class Bucket {
         else
             latch();
     }
+    public void setPosition(double pos) {
+        bucketServo.setPosition(pos);
+    }
 
 
     public boolean outtake() {
         bucketServo.setPosition(outtakePos);
 
         return true;
+    }
+    public void extendoOuttake(){
+        bucketServo.setPosition(extendoOuttakePos);
     }
     public int pixelsIn() {
         int pixels = 0;

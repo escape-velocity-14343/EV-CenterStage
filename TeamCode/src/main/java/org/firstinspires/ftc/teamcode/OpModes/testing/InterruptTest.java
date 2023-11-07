@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes.testing;
 
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
 @Config
-@TeleOp
+@TeleOp(group="aaaaa")
 public class InterruptTest extends LinearOpMode {
 
     public static int val = 0;

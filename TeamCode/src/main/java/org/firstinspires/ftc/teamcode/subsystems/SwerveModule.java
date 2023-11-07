@@ -59,7 +59,7 @@ public class SwerveModule {
         bottom.resetEncoder();
     }
     /**
-    *@param false = left, true = right
+    *@param right false = left, true = right
     */
     public void setSide(boolean right) {
         this.right = right;

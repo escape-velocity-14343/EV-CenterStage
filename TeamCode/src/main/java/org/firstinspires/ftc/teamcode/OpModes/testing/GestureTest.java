@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes.testing;
 
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
 
-@TeleOp
+@TeleOp(group="aaaaa")
 public class GestureTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {

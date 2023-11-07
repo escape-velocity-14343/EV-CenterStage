@@ -1,10 +1,12 @@
-package org.firstinspires.ftc.teamcode.teleop;
+package org.firstinspires.ftc.teamcode.OpModes.teleop;
 
 import com.arcrobotics.ftclib.hardware.motors.Motor;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @TeleOp
+@Disabled
 public class SwerveMotorTest extends LinearOpMode {
     @Override
     public void runOpMode() {
@@ -18,6 +20,7 @@ public class SwerveMotorTest extends LinearOpMode {
             lTop.set(gamepad1.left_stick_y);
             rBottom.set(gamepad1.right_stick_x);
             rTop.set(gamepad1.right_stick_y);
+            //lBottom.set()
         }
 
     }

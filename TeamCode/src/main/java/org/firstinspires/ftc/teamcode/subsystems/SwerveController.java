@@ -10,6 +10,7 @@ import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -47,7 +48,8 @@ public class SwerveController extends RobotDrive {
     enum rotationMode {
         HEADING_LOCK,
         PSUEDO_LOCK,
-        LOCKLESS
+        LOCKLESS,
+        AUTON
     }
 
     rotationMode rotMode = rotationMode.PSUEDO_LOCK;
@@ -77,6 +79,15 @@ public class SwerveController extends RobotDrive {
         voltageSensor = hMap.voltageSensor.iterator().next();
     }
     private void drive(double x, double y, double rot, double botHeading) {
+
+        // normalize
+        double scalar = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        if (scalar > 1) {
+            x = x / scalar;
+            y = y / scalar;
+        }
+
+        rot = Range.clip(rot, -1, 1);
         left.setPid(p,i,d);
         right.setPid(p,i,d);
         translation = new Translation2d(jx,jy);
@@ -121,12 +132,17 @@ public class SwerveController extends RobotDrive {
 
     }
     public void driveFieldCentric(double x, double y, double rot) {
-        double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        double botHeading = Robot.getHeading();
         telemetry.addData("heading",Math.toDegrees(botHeading));
+        double speed = Math.abs(x)+Math.abs(y);
+        double p = Robot.kHeadingP;
+        if (!compare(speed,0,0.1)) {
+            p/=4;
+        }
 
         switch (rotMode) {
             case HEADING_LOCK:
-                headingPID.setPID(Robot.kHeadingP, Robot.kHeadingI, Robot.kHeadingD);
+                headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
                 headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 rot = -headingPID.calculate(0);
@@ -138,7 +154,7 @@ public class SwerveController extends RobotDrive {
                     rotMode = rotationMode.LOCKLESS;
                     break;
                 }
-                headingPID.setPID(Robot.kHeadingP, Robot.kHeadingI, Robot.kHeadingD);
+                headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
                 headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 rot = -headingPID.calculate(0);
@@ -151,6 +167,9 @@ public class SwerveController extends RobotDrive {
                     rotMode = rotationMode.PSUEDO_LOCK;
                     break;
                 }
+                break;
+            case AUTON:
+                break;
         }
 
         lastHeading = botHeading;
@@ -190,5 +209,16 @@ public class SwerveController extends RobotDrive {
         }
         else
             headingLock(true,Math.toRadians(angle));
+    }
+    public void psuedoLock(boolean lock) {
+        if (!lock) {
+            headingLock(true,headingLockAngle);
+        } else {
+            headingLock(false,headingLockAngle);
+        }
+    }
+
+    public void setAuton() {
+        rotMode = rotationMode.AUTON;
     }
 }
