@@ -20,6 +20,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Rotation;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
+import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
 import java.util.Arrays;
 
@@ -27,7 +28,7 @@ public class SwerveModule {
 
     Motor top,bottom;
     AnalogEncoder rot;
-    Telemetry telemetry;
+    ToggleTelemetry telemetry;
     PIDController pid = new PIDController(0.01, 0.0, 0.02);
     boolean right=false;
     String direction = "";
@@ -46,7 +47,7 @@ public class SwerveModule {
     private double uncorrectedMotorRotation = 0.0;
 
 
-    public SwerveModule(Motor bottom, Motor top, AnalogEncoder rot, Telemetry telemetry) {
+    public SwerveModule(Motor bottom, Motor top, AnalogEncoder rot, ToggleTelemetry telemetry) {
         this.top = top;
         this.bottom = bottom;
         this.rot = rot;

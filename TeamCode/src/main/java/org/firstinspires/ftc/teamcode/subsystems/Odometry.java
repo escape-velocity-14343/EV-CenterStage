@@ -6,14 +6,17 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
 public class Odometry {
-    Telemetry telemetry;
+    ToggleTelemetry telemetry;
     Motor xEnc,yEnc;
+    DcMotor xE, yE;
     double fx,fy,dx,dy,heading,dh; //heading radians
     double dxTotal, dyTotal;
     double lastHeading=0, lastx=0, lasty=0;
@@ -21,12 +24,21 @@ public class Odometry {
     TelemetryPacket packet = new TelemetryPacket();
 
 
-    public Odometry (HardwareMap hMap,Telemetry telemetry) {
+    public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
         this.telemetry = telemetry;
+        xE = hMap.dcMotor.get("intake");
+        xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        yE = hMap.dcMotor.get("xEnc");
+        yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         xEnc = new Motor(hMap,"intake");
         xEnc.resetEncoder();
         yEnc = new Motor(hMap,"xEnc");
         yEnc.resetEncoder();
+        reset();
+
 
 
     }
@@ -74,6 +86,10 @@ public class Odometry {
 
     }
     public void reset() {
+        xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
         dy=0;
         dh=0;
@@ -84,6 +100,10 @@ public class Odometry {
 
     }
     public void reset(double x, double y) {
+        xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
         dy=0;
         dh=0;

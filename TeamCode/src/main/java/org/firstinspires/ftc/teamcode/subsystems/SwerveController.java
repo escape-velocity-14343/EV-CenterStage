@@ -15,6 +15,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
+import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
 
 @Config
@@ -49,6 +50,7 @@ public class SwerveController extends RobotDrive {
         HEADING_LOCK,
         PSUEDO_LOCK,
         LOCKLESS,
+        BASE,
         AUTON
     }
 
@@ -62,11 +64,11 @@ public class SwerveController extends RobotDrive {
     Translation2d translation = new Translation2d();
     public SwerveModule left, right;
     IMU imu;
-    Telemetry telemetry;
+    ToggleTelemetry telemetry;
     VoltageSensor voltageSensor;
     boolean headingLock = false;
     double headingLockAngle = 0;
-    public SwerveController(HardwareMap hMap, Telemetry telemetry) {
+    public SwerveController(HardwareMap hMap, ToggleTelemetry telemetry) {
         this.telemetry = telemetry;
         left = new SwerveModule(new Motor(hMap,"bottomleft"),new Motor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
 
@@ -116,7 +118,7 @@ public class SwerveController extends RobotDrive {
         //telemetry.addData("Left encoder", left.rot.getDegrees());
         //telemetry.addData("Right encoder", right.rot.getDegrees());
         //telemetry.addData("yaw",imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
-        telemetry.update();
+
     }
     public void goofyDrive(double direction, double power) {
         left.setPid(p,i,d);
@@ -168,6 +170,12 @@ public class SwerveController extends RobotDrive {
                     break;
                 }
                 break;
+            case BASE:
+                if (!compare(rot, 0, 0.01) || !compare(x, 0, 0.01) || !compare(y, 0, 0.01)) {
+                    rotMode = rotationMode.LOCKLESS;
+                    break;
+                }
+                break;
             case AUTON:
                 break;
         }
@@ -183,7 +191,8 @@ public class SwerveController extends RobotDrive {
 
     @Override
     public void stop() {
-
+        headingLock(false, headingLockAngle);
+        driveRobotCentric(0, 0, 0);
     }
 
 
@@ -221,4 +230,5 @@ public class SwerveController extends RobotDrive {
     public void setAuton() {
         rotMode = rotationMode.AUTON;
     }
+    public void setInit() { rotMode = rotationMode.BASE; }
 }

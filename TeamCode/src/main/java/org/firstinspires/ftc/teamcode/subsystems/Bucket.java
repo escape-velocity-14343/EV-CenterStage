@@ -15,11 +15,11 @@ import org.firstinspires.ftc.teamcode.vision.ColorPixelDetection;
 @Config
 public class Bucket {
 
-    public static double intakePos = 0.75;
-    public static double outtakePos = 0.35;
-    public static double latchClosed = 0.5;
-    public static double latchIntake = 0.2;
-    public static double latchOpen = 0.2;
+    public static double intakePos = 0.8;
+    public static double outtakePos = 0.405;
+    public static double latchClosed = 0.3;
+    public static double latchIntake = 0.6;
+    public static double latchOpen = 0.6;
     public static double proxTresh = 160;
     public static double extendoOuttakePos = 0.1;
 

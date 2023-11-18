@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.vision;
 import android.util.Size;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -19,11 +20,14 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
+@Config
 @TeleOp(name = "AprilTagVisionTest", group = "aaa")
 public class VisionTest extends LinearOpMode {
     private AprilTagProcessor aprilTag;
+    private UndistortProcessor undistort;
 
     private VisionPortal visionPortal;
+    public static boolean dewarp = true;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -38,6 +42,12 @@ public class VisionTest extends LinearOpMode {
 
             // Push telemetry to the Driver Station.
             telemetry.update();
+
+            if (dewarp) {
+                visionPortal.setProcessorEnabled(undistort, true);
+            } else {
+                visionPortal.setProcessorEnabled(undistort, false);
+            }
 
             sleep(20);
 
@@ -64,17 +74,19 @@ public class VisionTest extends LinearOpMode {
                 // == CAMERA CALIBRATION ==
                 // If you do not manually specify calibration parameters, the SDK will attempt
                 // to load a predefined calibration for your camera.
-                //.setLensIntrinsics(578.272, 578.272, 402.145, 221.506)
+                .setLensIntrinsics(356.182925829, 356.182925829, 319.833258237, 235.480453978)
 
                 // ... these parameters are fx, fy, cx, cy.
 
                 .build();
 
+        undistort = new UndistortProcessor();
+
         // Create the vision portal by using a builder.
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
         // Set the camera (webcam vs. built-in RC phone camera).
-        builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "backcam"));
 
         // Choose a camera resolution. Not all cameras support all resolutions.
         builder.setCameraResolution(new Size(640, 480));
@@ -91,12 +103,14 @@ public class VisionTest extends LinearOpMode {
         builder.setAutoStopLiveView(false);
 
         // Set and enable the processor.
+        builder.addProcessor(undistort);
         builder.addProcessor(aprilTag);
 
         // Build the Vision Portal, using the above settings.
         visionPortal = builder.build();
 
         // Disable or re-enable the aprilTag processor at any time.
+        visionPortal.setProcessorEnabled(undistort, true);
         visionPortal.setProcessorEnabled(aprilTag, true);
 
     }
