@@ -4,7 +4,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -15,8 +14,8 @@ import org.firstinspires.ftc.teamcode.vision.ColorPixelDetection;
 @Config
 public class Bucket {
 
-    public static double intakePos = 0.8;
-    public static double outtakePos = 0.405;
+    public static double intakePos = 0.65;
+    public static double outtakePos = 0.255;
     public static double latchClosed = 0.3;
     public static double latchIntake = 0.6;
     public static double latchOpen = 0.6;
@@ -24,7 +23,8 @@ public class Bucket {
     public static double extendoOuttakePos = 0.1;
 
     Servo bucketServo;
-    Servo latchServo;
+    Servo topLatch;
+    Servo bottomLatch;
     AnalogEncoder position;
     APDS9960 topSensor;
     APDS9960 bottomSensor;
@@ -39,10 +39,13 @@ public class Bucket {
 
     boolean lastLatch;
 
+    int numPixelsIn;
+
 
     public Bucket(HardwareMap hmap) {
         bucketServo = hmap.get(Servo.class, "bucket");
-        latchServo = hmap.get(Servo.class,"latch");
+        topLatch = hmap.get(Servo.class,"topLatch");
+        bottomLatch = hmap.get(Servo.class, "bottomLatch");
         //position = new AnalogEncoder(hmap, "bucketPos");
         topSensor = APDS9960.fromHMap(hmap, "bucketTop");
         bottomSensor = APDS9960.fromHMap(hmap, "bucketBottom");
@@ -53,14 +56,16 @@ public class Bucket {
         return true;
     }
     public double latchPos() {
-        return latchServo.getPosition();
+        return topLatch.getPosition();
     }
     public void latch() {
-        latchServo.setPosition(latchClosed);
+        topLatch.setPosition(latchClosed);
+        bottomLatch.setPosition(latchClosed);
         lastLatch = true;
     }
     public void unLatch() {
-        latchServo.setPosition(latchOpen);
+        topLatch.setPosition(latchOpen);
+        bottomLatch.setPosition(latchOpen);
         lastLatch=false;
     }
     public void latchToggle() {
@@ -83,7 +88,7 @@ public class Bucket {
     public void extendoOuttake(){
         bucketServo.setPosition(extendoOuttakePos);
     }
-    public int pixelsIn() {
+    private int pixelsIn() {
         int pixels = 0;
         if (topSensor.getProximity()<proxTresh) {
             pixels ++;
@@ -92,6 +97,10 @@ public class Bucket {
             pixels ++;
         }
         return pixels;
+    }
+
+    public int getPixelsIn() {
+        return numPixelsIn;
     }
 
     public ColorPixelDetection[] getPixelColors() {
@@ -124,6 +133,13 @@ public class Bucket {
         return new ColorPixelDetection(minind);
     }
 
+    /**
+     * @return Returns the number of pixels in the bucket.
+     */
+    public int update() {
+        return numPixelsIn = pixelsIn();
+    }
+
     private double getColorDist(double[] color1, double[] color2) {
         assert color1.length == color2.length;
         double dist = 0;
@@ -131,6 +147,33 @@ public class Bucket {
             dist += Math.pow(color1[i]-color2[i], 2);
         }
         return dist;
+    }
+
+    public void singleDrop() {
+        Log.println(Log.WARN, "Bucket", "Dropping one!");
+        if (numPixelsIn == 2) {
+            bottomLatch.setPosition(latchClosed);
+            topLatch.setPosition(latchOpen);
+        } else {
+            topLatch.setPosition(latchOpen);
+            bottomLatch.setPosition(latchOpen);
+        }
+    }
+
+    public void doubleDrop() {
+        topLatch.setPosition(latchOpen);
+        bottomLatch.setPosition(latchOpen);
+    }
+
+    /**
+     * @param pixels number of pixels u wanna drop
+     */
+    public void drop(int pixels) {
+        if (pixels == 1) {
+            singleDrop();
+        } else if (pixels == 2) {
+            doubleDrop();
+        }
     }
 
 }

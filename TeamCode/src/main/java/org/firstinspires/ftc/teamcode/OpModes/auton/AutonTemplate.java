@@ -55,7 +55,7 @@ public abstract class AutonTemplate extends Robot {
 
     public ElapsedTime timer = new ElapsedTime();
 
-    public void initAuton() {
+    public void initAuton(boolean isBlue) {
         initialize();
         initGVF();
         propProcessor = new TeamPropProcessor(true);
@@ -68,6 +68,8 @@ public abstract class AutonTemplate extends Robot {
         transferStates = states.INIT;
 
         telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
+
+        headingLockIsFlipped = isBlue;
     }
 
     public void updatePropReading() {
@@ -113,9 +115,9 @@ public abstract class AutonTemplate extends Robot {
         }
     }
 
-    private void run() {
+    private void run(boolean isBlue) {
 
-        initAuton();
+        initAuton(isBlue);
 
         while(opModeInInit()) {
             for (LynxModule hub : allHubs) {
@@ -159,7 +161,7 @@ public abstract class AutonTemplate extends Robot {
         builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
 
         // Choose a camera resolution. Not all cameras support all resolutions.
-        builder.setCameraResolution(new Size(640, 480));
+        builder.setCameraResolution(new Size(320, 240));
 
         // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
         builder.enableLiveView(true);

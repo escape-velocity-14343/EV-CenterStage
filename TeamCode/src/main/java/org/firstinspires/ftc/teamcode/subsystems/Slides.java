@@ -18,6 +18,8 @@ public class Slides {
         m0 = hMap.dcMotor.get("slide0");
         motor0 = new Motor(hMap,"slide0");
         motor1 = new Motor(hMap,"slide1");
+        motor0.setRunMode(Motor.RunMode.RawPower);
+        motor1.setRunMode(Motor.RunMode.RawPower);
         tilt = hMap.get(Servo.class,"slidetilt");
         motor0.setInverted(true);
 
@@ -25,7 +27,7 @@ public class Slides {
     }
     public void moveSlides(double power) {
         motor0.set(power);
-        motor1.set(power);
+       // motor1.set(power);
     }
     public void pidSlides(int target) {
         this.target = target;

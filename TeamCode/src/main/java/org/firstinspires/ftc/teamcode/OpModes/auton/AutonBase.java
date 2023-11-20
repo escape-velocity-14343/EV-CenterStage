@@ -1,74 +1,88 @@
 package org.firstinspires.ftc.teamcode.OpModes.auton;
 
-import static org.firstinspires.ftc.teamcode.OpModes.auton.AutonBase.Alliance.BLUE;
-import static org.firstinspires.ftc.teamcode.OpModes.auton.AutonBase.Alliance.RED;
-
-import android.util.Log;
 import android.util.Size;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.subsystems.Controllers.MichaelPID;
 import org.firstinspires.ftc.teamcode.subsystems.GVF.GVFFollower;
 import org.firstinspires.ftc.teamcode.subsystems.MathUtils.Pose2D;
-import org.firstinspires.ftc.teamcode.subsystems.MathUtils.Vector;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
-import org.firstinspires.ftc.teamcode.subsystems.Trajectory.Lerp;
-import org.firstinspires.ftc.teamcode.subsystems.Trajectory.Trajectory;
-import org.firstinspires.ftc.teamcode.subsystems.Trajectory.TrajectorySegment;
 import org.firstinspires.ftc.teamcode.vision.TeamPropProcessor;
+import org.firstinspires.ftc.teamcode.vision.UndistortProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 @Config
 public abstract class AutonBase extends Robot {
-    public static double correctionFactor = 0.2;
-    public static double currentVelocityScalar = 0.01;
-    public static double pathEndGain = 2;
-    public static double curvatureGain = 0;
-    /**
-     * Increasing this number increases the area in which the curvature is accounted for.
-     */
-    public static double curvatureLookahead = 5;
 
-    public static double minVelocity = 0;
-    public static double maxVelocity = 1;
-    public static double maxAcceleration = 0.5;
-    public static int numWheels = 2;
+    public int propPosition = 1;
+    public TeamPropProcessor propProcessor;
+    public AprilTagProcessor aprilTag;
+    public UndistortProcessor undistort;
+    public VisionPortal propPortal;
+    public VisionPortal tagPortal;
 
-    public static double intakePower = 0.4;
-
-    public static double leftpos = 32;
-
-    private VisionPortal visionportal;
-    Alliance alliance = RED;
-    Side side = Side.BACKDROP;
+    public Pose2d startPos = new Pose2d(0,0,new Rotation2d(0));
+    RunPos runPosition;
+    ScoreAmount scoringAmount;
+    int state = 0;
 
 
-    private GVFFollower pathfollower;
 
-    enum Side {
-        AUDIENCE,
-        BACKDROP
+
+    public GVFFollower pathfollower;
+
+    public ElapsedTime timer = new ElapsedTime();
+    enum RunPos {
+        RED_AUDIENCE,
+        BLUE_AUDIENCE,
+        RED_BACKSTAGE,
+        BLUE_BACKSTAGE
     }
-    enum Alliance {
-        BLUE,
-        RED
+    enum ScoreAmount {
+        PURPLE,
+        PRELOADS,
+        PLUS_TWO,
+        PLUS_FOUR
     }
-    public void run() {
+    enum TravelPath {
+        WALL,
+        STAGE_DOOR
+    }
+    enum Park {
+        WALL,
+        FAR
+    }
+
+
+    public void initAuton(RunPos runPos, ScoreAmount scoreAmount) {
         initialize();
-        initGVF();
-        TeamPropProcessor propProcessor = new TeamPropProcessor(true);
+        resetForStart();
+        runPosition = runPos;
+        scoringAmount = scoreAmount;
+        switch (runPos) {
+            case RED_BACKSTAGE: startPos = new Pose2d(12,-84,new Rotation2d(Math.PI/2)); break;
+            case RED_AUDIENCE: startPos = new Pose2d(-12,-84,new Rotation2d(Math.PI/2)); break;
+            case BLUE_BACKSTAGE: startPos = new Pose2d(12,84,new Rotation2d(-Math.PI/2)); break;
+            case BLUE_AUDIENCE: startPos = new Pose2d(-12,-4,new Rotation2d(-Math.PI/2)); break;
+        }
+        propProcessor = new TeamPropProcessor(true);
+
         initVisionPortal(new ArrayList<>(Arrays.asList(propProcessor)));
         slides.reset();
 
@@ -76,225 +90,49 @@ public abstract class AutonBase extends Robot {
 
         transferStates = states.INIT;
 
-        ArrayList<Vector> controlright = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(17, -7)
-        ));
-
-        ArrayList<Vector> controlmid = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(20, 0)
-        ));
-
-        ArrayList<Vector> controlleft = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(22, 0)
-        ));
-
-        ArrayList<Vector> controlheadingleft = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(Math.PI/2, 0)
-        ));
-
-        ArrayList<Vector> controlheading = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(0, 0)
-        ));
-
-        ArrayList<Vector> controlend = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(Math.PI/2, 0)
-        ));
-        ArrayList<Vector> controlheadingright = new ArrayList<>(Arrays.asList(
-                new Vector(0, 0),
-                new Vector(0, 0)
-        ));
-        ArrayList<ArrayList<Vector>> controls = new ArrayList<>(Arrays.asList(controlleft, controlmid, controlright));
-        ArrayList<ArrayList<Vector>> headingcontrols = new ArrayList<>(Arrays.asList(controlend, controlheading, controlheadingleft, controlheadingright));
-
-
-
-        int position = -1;
-
         telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
+    }
+    public void run() {
+        while (!isStopRequested()) {
+            //drive forward to spike
+            if (state==0) {
+                if (pidToPosition(12, -48)||timer.seconds()>1) {
 
-
-        while(opModeInInit()) {
-            for (LynxModule hub : allHubs) {
-                hub.clearBulkCache();
-            }
-            try {
-                position = propProcessor.getPosition();
-                double[] avgs = propProcessor.getVals();
-                switch(position) {
-                    case 0:
-                        telemetry.addData("Prop Pos", "left"); break;
-                    case 1:
-                        telemetry.addData("Prop Pos", "middle"); break;
-                    case 2:
-                        telemetry.addData("Prop Pos", "right"); break;
                 }
-                telemetry.addData("Left Avg:", avgs[0]);
-                telemetry.addData("Middle Avg:", avgs[1]);
-                telemetry.addData("Right Avg:", avgs[2]);
-
-            } catch (Exception e) {}
-
-
-            update();
-            telemetry.addData("slidesPos", slides.getPosition());
-            telemetry.addLine("Initialized, dont press start please");
-            if (gamepad1.dpad_up) {
-                alliance = BLUE;
-                propProcessor.setTeam(false);
-            }
-            if (gamepad1.dpad_down) {
-                alliance = RED;
-                propProcessor.setTeam(true);
-            }
-            if (gamepad1.dpad_left) {
-                side = Side.AUDIENCE;
-            }
-            if (gamepad1.dpad_right) {
-                side = Side.BACKDROP;
-            }
-            telemetry.addData("side", side);
-            telemetry.addData("alliance", alliance);
-            telemetry.update();
-        }
-        if (side==Side.AUDIENCE) {
-            position = 2-position;
-        }
-        if(alliance==Alliance.BLUE) {
-            position = 2-position;
-        }
-        for (ArrayList<Vector> a : controls) {
-            for (int i = 0; i < a.size(); i++) {
-                a.set(i, new Vector(a.get(i).get(0), a.get(i).get(1)*(side==Side.BACKDROP ? 1: -1)*(alliance==Alliance.RED ? 1: -1)));
             }
         }
+    }
 
-        for (ArrayList<Vector> a : headingcontrols) {
-            for (int i = 0; i < a.size(); i++) {
-                a.set(i, new Vector(a.get(i).get(0)*(side==Side.BACKDROP ? 1: -1)*(alliance==Alliance.RED ? 1: -1), a.get(i).get(1)));
+    public void updatePropReading() {
+        try {
+            propPosition = propProcessor.getPosition();
+            double[] avgs = propProcessor.getVals();
+            switch(propPosition) {
+                case 0:
+                    telemetry.addData("Prop Pos", "left"); break;
+                case 1:
+                    telemetry.addData("Prop Pos", "middle"); break;
+                case 2:
+                    telemetry.addData("Prop Pos", "right"); break;
             }
-        }
+            telemetry.addData("Left Avg:", avgs[0]);
+            telemetry.addData("Middle Avg:", avgs[1]);
+            telemetry.addData("Right Avg:", avgs[2]);
 
+        } catch (Exception e) {}
+    }
 
-
-        // right
-        Trajectory trajectoryright = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlright), true))));
-
-        // middle
-        Trajectory trajectorymiddle = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlmid), true))));
-
-        // left
-        Trajectory trajectoryleft = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlleft), true))));
-
-        Trajectory headingTrajectoryLeft = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlheadingleft))
-        )));
-
-
-        Trajectory headingTrajectory = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlheading))
-        )));
-        Trajectory headingTrajectoryRight = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlheadingright))
-        )));
-
-        Trajectory secondHeadingTraj = new Trajectory(new ArrayList<>(Arrays.asList(
-                new TrajectorySegment(new Lerp(controlend))
-        )));
-        switch (position) {
-            case TeamPropProcessor.RIGHT:
-                pathfollower.initTrajectory(trajectoryright, headingTrajectoryRight, 0.25, 0.05, 100, new Pose2D(0, 0, 0));
-                break;
-            case TeamPropProcessor.MIDDLE:
-                pathfollower.initTrajectory(trajectorymiddle, headingTrajectory, 0.25, 0.05, 100, new Pose2D(0, 0, 0));
-                break;
-            case TeamPropProcessor.LEFT:
-                pathfollower.initTrajectory(trajectoryleft, headingTrajectoryLeft, 0.25, 0.05, 100, new Pose2D(0, 0, 0));
-                break;
-        }
-
-        odometry.reset(0, 3*(side==Side.BACKDROP?1:-1)*(alliance==RED?1:-1));
+    public void resetForStart() {
+        odometry.reset();
         resetIMU();
-        pathfollower.start();
         transferStates = states.FOLDEDFAR;
-        ElapsedTime timeout = new ElapsedTime();
-
-        boolean hasinitedtraj = false;
-
-        while (opModeIsActive()) {
-            for (LynxModule hub : allHubs) {
-                hub.clearBulkCache();
-            }
-
-            Pose2d odopose = odometry.getPose();
-            Pose2D movepose = new Pose2D(0, 0, 0);
-
-            Log.println(Log.INFO, "Odomoetry", "x: " + odopose.getX() + ", y: " + odopose.getY() + ", rot: " + odopose.getRotation().getDegrees());
-            odometry.update(getHeading());
-
-            if (!pathfollower.isStopped) {
-
-                pathfollower.update(Pose2D.fromFTCLibPose(odometry.getPose()), getLoopSeconds());
-
-
-                movepose = pathfollower.get();
-            }
-
-
-            if (!pathfollower.isStopped && timeout.seconds() < 5.0) {
-                swerve.driveFieldCentric(-movepose.vals.get(1), movepose.vals.get(0), Range.clip(movepose.vals.get(2), -1, 1));
-            } else if (timeout.seconds() < 7.0) {
-                pathfollower.stop();
-                intake.intake(-intakePower);
-                swerve.driveRobotCentric(0, 0, 0);
-                swerve.stop();
-
-            } else if (timeout.seconds() < 15.0 && !hasinitedtraj) {
-                if (side == Side.AUDIENCE) {
-                    break;
-                }
-                Trajectory secondtraj = new Trajectory(new ArrayList<>(Arrays.asList(
-                           new TrajectorySegment(new Lerp(new ArrayList<>(Arrays.asList(
-                                new Vector(odopose.getX(), odopose.getY()),
-                                new Vector((22 + (position==0?5:position==1?0:-5)), -leftpos*(alliance==RED?1:-1))
-                        ))), true))));
-                pathfollower.initTrajectory(secondtraj, secondHeadingTraj, 0.25, 0.05, 100, Pose2D.fromFTCLibPose(odopose));
-                pathfollower.start();
-                hasinitedtraj = true;
-            } else if (timeout.seconds() < 15.0) {
-                intake.stop();
-                swerve.setAuton();
-                swerve.driveFieldCentric(-movepose.vals.get(1), movepose.vals.get(0), Range.clip(movepose.vals.get(2), -1, 1));
-            } else {
-                swerve.driveRobotCentric(0, 0, 0);
-                transferStates = states.OUTTAKE;
-                intake.stop();
-                if (timeout.seconds() > 20.0) {
-                    bucket.unLatch();
-                }
-            }
-
-            update();
-
-
-
-        }
-
-
+        ElapsedTime timer = new ElapsedTime();
     }
 
-    private void initGVF() {
-        pathfollower = new GVFFollower(correctionFactor, currentVelocityScalar, new MichaelPID(kHeadingP, kHeadingI, kHeadingD), pathEndGain, curvatureGain, curvatureLookahead);
-        pathfollower.initRobot(minVelocity, maxVelocity, maxAcceleration, numWheels);
-    }
+    /**
+     * Will return (0, 0, 0) if no paths are active.
+     * @return
+     */
 
     public void initVisionPortal(ArrayList<VisionProcessor> processors) {
         VisionPortal.Builder builder = new VisionPortal.Builder();
@@ -303,13 +141,13 @@ public abstract class AutonBase extends Robot {
         builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
 
         // Choose a camera resolution. Not all cameras support all resolutions.
-        builder.setCameraResolution(new Size(640, 480));
+        builder.setCameraResolution(new Size(320, 240));
 
         // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
         builder.enableLiveView(true);
 
         // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+        builder.setStreamFormat(VisionPortal.StreamFormat.MJPEG);
 
         // Choose whether or not LiveView stops if no processors are enabled.
         // If set "true", monitor shows solid orange screen if no processors enabled.
@@ -320,6 +158,63 @@ public abstract class AutonBase extends Robot {
             builder.addProcessor(processor);
         }
 
-        visionportal = builder.build();
+        propPortal = builder.build();
+
     }
+    public void initAprilTag() {
+
+        // Create the AprilTag processor.
+
+        aprilTag = new AprilTagProcessor.Builder()
+                .setDrawAxes(false)
+                .setDrawCubeProjection(true)
+                .setDrawTagOutline(true)
+                .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+                .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
+                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+
+
+                // == CAMERA CALIBRATION ==
+                // If you do not manually specify calibration parameters, the SDK will attempt
+                // to load a predefined calibration for your camera.
+                .setLensIntrinsics(356.182925829, 356.182925829, 319.833258237, 235.480453978)
+
+                // ... these parameters are fx, fy, cx, cy.
+
+                .build();
+        undistort = new UndistortProcessor();
+
+        // Create the vision portal by using a builder.
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        builder.setCamera(hardwareMap.get(WebcamName.class, "backcam"));
+
+        // Choose a camera resolution. Not all cameras support all resolutions.
+        builder.setCameraResolution(new Size(640, 480));
+
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        builder.enableLiveView(false);
+
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+
+        // Choose whether or not LiveView stops if no processors are enabled.
+        // If set "true", monitor shows solid orange screen if no processors enabled.
+        // If set "false", monitor shows camera view without annotations.
+        builder.setAutoStopLiveView(false);
+
+        // Set and enable the processor.
+        builder.addProcessor(aprilTag);
+        builder.addProcessor(undistort);
+
+        // Build the Vision Portal, using the above settings.
+        tagPortal = builder.build();
+
+        // Disable or re-enable the aprilTag processor at any time.
+        tagPortal.setProcessorEnabled(undistort, true);
+        tagPortal.setProcessorEnabled(aprilTag, true);
+
+    }
+
 }

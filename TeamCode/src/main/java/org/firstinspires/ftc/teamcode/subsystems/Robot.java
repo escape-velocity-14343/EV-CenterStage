@@ -1,9 +1,13 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.hardware.motors.MotorEx;
@@ -44,12 +48,15 @@ public abstract class Robot extends LinearOpMode {
     public static double kSlidesP = 0.005;
     public static double kSlidesI = 0;
     public static double kSlidesD = 0;
+    public static double kIntakeP = 0.005;
+    public static double kIntakeI = 0;
+    public static double kIntakeD = 0;
 
     public static double kSlidesStatic = 0.1;
 
     public static int slidesPos = 0;
-    public static double intakeTilt = 0.1;
-    public static double outtakeTilt = 0.7;
+    public static double intakeTilt = 0.075;
+    public static double outtakeTilt = 0.55;
 
     public static double underpassBucketPos = 1;
 
@@ -58,12 +65,12 @@ public abstract class Robot extends LinearOpMode {
     public static int slideIntakeEncTol = 40;
     public static int underpassSlidePos = 50;
     public static int bucketIntakeWaitms = 30;
-    public static int slideOuttakeEncPos = 1000;
+    public static int slideOuttakeEncPos = 900;
     public static int slideExtendoEncPos = 2400;
     public static double pixelInMillis = 15;
     public static boolean disableTelem = false;
 
-    public static double intakeCurrentDraw = 7;
+    public static double intakeCurrentDraw = 5;
     public static double TICKS_PER_INCH = 1892.36864358;
     public static double X_ROTATE=6;
     public static double Y_ROTATE=-7;
@@ -146,6 +153,7 @@ public abstract class Robot extends LinearOpMode {
     public boolean done;
     public boolean lastIntake = false;
     public boolean lockForever = false;
+    public PIDController poscontroller;
     public void initialize() {
         unimportantTelemetry = new ToggleTelemetry(telemetry);
         unimportantTelemetry.setEnabled(enableTelemetry);
@@ -172,8 +180,7 @@ public abstract class Robot extends LinearOpMode {
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
 
-        gamepad1.setLedColor(255,255,0,10000);
-        gamepad2.setLedColor(255,200,0,10000);
+
 
         swerve.setInit();
     }
@@ -225,7 +232,7 @@ public abstract class Robot extends LinearOpMode {
         for (LynxModule hub : allHubs) {
             hub.clearBulkCache();
         }
-        pixels = bucket.pixelsIn();
+        pixels = bucket.update();
         odometry.update(getHeading());
         heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS)+headingOffset;
         done = false;
@@ -398,7 +405,6 @@ public abstract class Robot extends LinearOpMode {
             case INIT:
                 bucket.latch();
                 bucket.setPosition(bucketInitPos);
-                slides.pidSlides(100);
                 slides.tilt(0);
                 done = true;
                 break;
@@ -443,8 +449,9 @@ public abstract class Robot extends LinearOpMode {
         }
     }
     public void drop() {
-        bucket.unLatch();
+        bucket.singleDrop();
     }
+    public void dropAll() {bucket.doubleDrop();}
     public void outtake() {
         transferStates = states.OUTTAKE;
         outtakeProgress = outtakePos.RETRACTED;
@@ -469,5 +476,34 @@ public abstract class Robot extends LinearOpMode {
         double s = time.seconds();
         time.reset();
         return s;
+    }
+
+    public boolean alliance;
+    public boolean side;
+
+    public void setAlliance(boolean isRed) {
+        alliance = isRed;
+        swerve.flipHeading(!isRed);
+    }
+
+    public void setSide(boolean isBackstage) {
+        side = isBackstage;
+    }
+
+    public double tolerance;
+
+    public boolean pidToPosition(double x, double y) {
+        Pose2d odopose = odometry.getPose();
+        y *= (alliance?1:-1);
+        double xmove = -poscontroller.calculate(odopose.getX() - x);
+
+        double ymove = -poscontroller.calculate(odopose.getY() - y);
+        double error = Math.pow(odopose.getX() - x, 2) + Math.pow(odopose.getY() - y, 2);
+        swerve.driveFieldCentric(ymove,-xmove, 0);
+        return error<tolerance;
+    }
+    public boolean pidToPosition(double x, double y, double heading) {
+        swerve.headingLock(true, heading);
+        return pidToPosition(x,y);
     }
 }

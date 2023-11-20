@@ -24,8 +24,9 @@ public class RedPreloads extends AutonTemplate {
     public static double bucketStopDropAndRollPos = 0.2;
     public static int slideStopDropAndRollPos = 0;
     public static double timetodriveforward = 0.5;
-    public static double purplePower = -0.25;
+    public static double purplePower = 2.5*90;
     public static double backdropYPosOffset = 2;
+    public static double turnlim = 0.4;
 
 
     public PIDController poscontroller;
@@ -42,7 +43,8 @@ public class RedPreloads extends AutonTemplate {
 
     @Override
     public void runOpMode() {
-        initAuton();
+        initAuton(false);
+
         voltageMultiplier = 12.5/voltageSensor.getVoltage();
         while (opModeInInit()) {
             update();
@@ -95,7 +97,7 @@ public class RedPreloads extends AutonTemplate {
                 swerve.driveRobotCentric(0,-0.2,0);
                 if (timer.seconds()>0.5) {
                     timer.reset();
-                    state = 2;
+                    state = 3;
                 }
             }
 
@@ -104,8 +106,8 @@ public class RedPreloads extends AutonTemplate {
                 swerve.headingLock(true, Math.PI * (propPosition == 0 ? 1 : propPosition == 1 ? 0 : -1) / 2);
 
 
-                intake.intake(purplePower*voltageMultiplier);
-                if (timer.seconds()>0.5) {
+                intake.pidIntake((int) purplePower);
+                if (timer.seconds()>20) {
                     timer.reset();
                     state = 3;
                 }
@@ -129,7 +131,7 @@ public class RedPreloads extends AutonTemplate {
                 swerve.setAuton();
             }
             else if (state==5) {
-                if (pidToPosition(26-(propPosition-1)*6,-32)||timer.seconds()>2.0) {
+                if (pidToPosition(29-(propPosition-1)*6,-32)||timer.seconds()>2.0) {
                     timer.reset();
                     state = 6;
                 }
@@ -157,7 +159,7 @@ public class RedPreloads extends AutonTemplate {
                     sum /= detections.size();
                     ypos = odopose.getY()-sum+backdropYPosOffset;
                 }
-                if (pidToPosition(26-(propPosition-1)*6,ypos)||timer.seconds()>0.5) {
+                if (pidToPosition(29-(propPosition-1)*6,ypos)||timer.seconds()>0.5) {
                     timer.reset();
                     state = 8;
                 }
@@ -181,9 +183,12 @@ public class RedPreloads extends AutonTemplate {
                 }
             }
             else if (state == 10) {
-                drop();
-                timer.reset();
-                state = 21;
+                dropAll();
+                if (timer.seconds() > 0.1) {
+                    timer.reset();
+                    state = 21;
+                }
+
             }
 
             else if (state==21) {

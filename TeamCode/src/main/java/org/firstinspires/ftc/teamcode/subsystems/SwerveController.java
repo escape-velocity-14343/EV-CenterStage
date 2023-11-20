@@ -44,6 +44,7 @@ public class SwerveController extends RobotDrive {
     double rot;
     double lx,ly,rx,ry;
     double[] powers = {0,0,0,0};
+    double headinglim = 1;
 
     boolean rotationInput = false;
     enum rotationMode {
@@ -183,7 +184,7 @@ public class SwerveController extends RobotDrive {
         lastHeading = botHeading;
 
         // drive using inputs
-        drive(x,y,rot,botHeading);
+        drive(x,y,Range.clip(rot, -headinglim, headinglim),botHeading);
     }
     public void driveRobotCentric(double x, double y, double rot) {
         drive(x,y,rot,0);
@@ -193,6 +194,12 @@ public class SwerveController extends RobotDrive {
     public void stop() {
         headingLock(false, headingLockAngle);
         driveRobotCentric(0, 0, 0);
+    }
+
+    public boolean autonFlipHeading = false;
+
+    public void flipHeading(boolean isFlipped) {
+        autonFlipHeading = isFlipped;
     }
 
 
@@ -206,7 +213,7 @@ public class SwerveController extends RobotDrive {
         } else {
             rotMode = rotationMode.PSUEDO_LOCK;
         }
-        headingLockAngle = angle;
+        headingLockAngle = angle * (autonFlipHeading?-1:1);
     }
 
     /**
@@ -225,6 +232,20 @@ public class SwerveController extends RobotDrive {
         } else {
             headingLock(false,headingLockAngle);
         }
+    }
+
+    /**
+     * This function will change the heading lock angle if and only if the robot is in heading lock mode.
+     * @param angle In Radians.
+     */
+    public void updateHeadingLock(double angle) {
+        if (rotMode == rotationMode.HEADING_LOCK) {
+            headingLock(true, angle);
+        }
+    }
+
+    public void setTurnLimit(double lim) {
+        headinglim = lim;
     }
 
     public void setAuton() {

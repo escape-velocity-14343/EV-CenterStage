@@ -29,6 +29,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
     public static double timetodriveforward = 0.5;
     public static double purplePower = -0.22;
     public static double backdropYPosOffset = 2;
+    public static double targetVoltage = 14;
 
 
     public PIDController poscontroller;
@@ -46,7 +47,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
 
     @Override
     public void runOpMode() {
-        initAuton();
+        initAuton(false);
         voltageMultiplier = 12.5/voltageSensor.getVoltage();
         while (opModeInInit()) {
             update();
@@ -75,6 +76,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
             odopose = odometry.getPose();
             if (state > 14 && state < 19) {
                 if (runtime.seconds()>27) {
+                    underpass();
                     state = 19;
                     cycleCount = 1000;
                 }
@@ -87,7 +89,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
 
 
             if (state==0) {
-                double xTarget = forwarddist - (propPosition == 1 ? 5 : 4);
+                double xTarget = forwarddist - (propPosition == 1 ? 7 : 6);
                 double yTarget = 0;
                 //double xmove = poscontroller.calculate(odopose.getX() - forwarddist + (propPosition == 1 ? 5 : 4));
 
@@ -132,7 +134,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
                 if (pidToPosition(12,-3)||timer.seconds()>2.0) {
                     timer.reset();
                     state = 4;
-                    initAprilTag();
+
                 }
                 swerve.setAuton();
 
@@ -148,6 +150,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
             else if (state==5) {
                 if (pidToPosition(26-(propPosition-1)*6,-32)||timer.seconds()>2.0) {
                     timer.reset();
+                    initAprilTag();
                     state = 6;
                 }
                 slides.tilt(outtakeTilt);
@@ -180,16 +183,16 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
                 }
             }
             else if (state==8) {
-                slides.pidSlides(slideOuttakeEncPos+50+250*cycleCount);
+                slides.pidSlides(slideOuttakeEncPos+250*cycleCount);
                 swerve.headingLock(true, Math.PI/2);
                 swerve.driveFieldCentric(0,0,0);
-                if (done) {
+                if (done||timer.seconds()>1) {
                     timer.reset();
                     state = 9;
                 }
             }
             else if (state == 9) {
-                slides.pidSlides(slideOuttakeEncPos+50+250*cycleCount);
+                slides.pidSlides(slideOuttakeEncPos+250*cycleCount);
                 swerve.headingLock(true, Math.PI/2);
                 swerve.driveFieldCentric(0,0,0);
                 if (timer.seconds()>0.2) {
@@ -204,6 +207,7 @@ public class RedBackdropBothVisionNew extends AutonTemplate {
             }
             else if (state==11) {
                 if (timer.seconds()>0.3) {
+                    slides.pidSlides(slideOuttakeEncPos+200+50+250*cycleCount);
                     timer.reset();
                     state = 13;
                 }

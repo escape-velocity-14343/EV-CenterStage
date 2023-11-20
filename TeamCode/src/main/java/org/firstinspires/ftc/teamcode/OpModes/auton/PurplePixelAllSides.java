@@ -24,7 +24,7 @@ public class PurplePixelAllSides extends AutonTemplate {
     public static double bucketStopDropAndRollPos = 0.2;
     public static int slideStopDropAndRollPos = 0;
     public static double timetodriveforward = 0.5;
-    public static double purplePower = -0.25;
+    public static double purplePower = -0.22;
     public static double backdropYPosOffset = 2;
 
 
@@ -42,7 +42,7 @@ public class PurplePixelAllSides extends AutonTemplate {
 
     @Override
     public void runOpMode() {
-        initAuton();
+        initAuton(false);
         voltageMultiplier = 12.5/voltageSensor.getVoltage();
         while (opModeInInit()) {
             update();

@@ -99,9 +99,9 @@ public class TeamPropProcessor implements VisionProcessor {
         //}
         //Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
         try {
-            leftrect = new Rect(new Point(leftCenterX,leftCenterY),new Size (leftX,leftY));
-            midrect = new Rect(new Point(midCenterX,midCenterY),new Size (midX,midY));
-            rightrect = new Rect(new Point(rightCenterX,rightCenterY),new Size (rightX,rightY));
+            leftrect = new Rect(new Point(leftCenterX/2,leftCenterY/2),new Size (leftX/2,leftY/2));
+            midrect = new Rect(new Point(midCenterX/2,midCenterY/2),new Size (midX/2,midY/2));
+            rightrect = new Rect(new Point(rightCenterX/2,rightCenterY/2),new Size (rightX/2,rightY/2));
 
 
 
