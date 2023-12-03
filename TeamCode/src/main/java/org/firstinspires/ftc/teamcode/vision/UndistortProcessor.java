@@ -23,6 +23,7 @@ public class UndistortProcessor implements VisionProcessor {
     public static double k1 = -0.0311449206435;
     public static double k2 = 0.00974000885112;
     public static double k3 = -0.0013747840902;
+    public static double kmult = 0;
     public static boolean toRun = true;
     Mat cameraMatrix;
     Mat deez;
@@ -34,6 +35,7 @@ public class UndistortProcessor implements VisionProcessor {
 
     @Override
     public Object processFrame(Mat frame, long captureTimeNanos) {
+        constructMatrix();
         if (toRun) {
             Calib3d.fisheye_undistortImage(frame, frame, cameraMatrix, deez, cameraMatrix);
         }
@@ -73,6 +75,6 @@ public class UndistortProcessor implements VisionProcessor {
         //cameraMatrix.put(2,1,0);
         //cameraMatrix.put(2,2,1);
         deez = new Mat(1, 4, CvType.CV_32FC1);
-        deez.put(0, 0, new float[]{(float) k1, (float) k2, (float) k3, 0});
+        deez.put(0, 0, new float[]{(float) (k1*kmult), (float) (k2*kmult), (float) (k3*kmult), 0});
     }
 }

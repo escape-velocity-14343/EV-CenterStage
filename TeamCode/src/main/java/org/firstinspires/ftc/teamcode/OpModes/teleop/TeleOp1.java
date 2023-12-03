@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.VoltageUnit;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 @TeleOp(name="Comp Teleop",group = "0")
@@ -18,16 +20,17 @@ public class TeleOp1 extends Robot {
     boolean previousShare = false;
     boolean previousShare2 = false;
     boolean previousCircle;
+    boolean toGooberAlign = false;
 
 
     @Override
     public void runOpMode() {
         initialize();
+        headingOffset = 0;
         waitForStart();
         Gamepad gamepad1copy = new Gamepad();
         Gamepad gamepad2copy = new Gamepad();
         while(opModeIsActive()) {
-            swerve.setAuton();
             gamepad1copy.copy(gamepad1);
             gamepad2copy.copy(gamepad2);
 
@@ -36,7 +39,7 @@ public class TeleOp1 extends Robot {
             if (gamepad1copy.options) {
                 resetIMU();
             }
-            if (transferStates == states.OUTTAKE||transferStates == states.EXTENDO||transferStates == states.DROP) {
+            if (transferStates == states.OUTTAKE||transferStates == states.EXTENDO||transferStates == states.DROP||transferStates == states.HANG) {
                 if (gamepad1copy.right_trigger>0) {
                     slides.moveSlides(gamepad1copy.right_trigger);
                 }
@@ -65,6 +68,7 @@ public class TeleOp1 extends Robot {
 
 
             } else {
+                intake.armUp();
                 intake.stop();
                 lastIntake = false;
             }
@@ -77,8 +81,7 @@ public class TeleOp1 extends Robot {
                 if (transferStates==states.INTAKE) {
                     bucket.latch();
                 }
-                transferStates = states.UNDERPASS;
-                tiltProgess = tiltPos.WORKING;
+                underpass();
             }
 
             if (gamepad2copy.dpad_up||gamepad1copy.dpad_up) {
@@ -89,8 +92,21 @@ public class TeleOp1 extends Robot {
                 drone.setPosition(1-dronePos);
             }
 
+            if (gamepad1copy.touchpad) {
+                toGooberAlign = true;
+            }
+            if (!gamepad1copy.touchpad_finger_1) {
+                toGooberAlign = false;
+            }
+
+            if (toGooberAlign) {
+                if (gooberAlign(gamepad1copy)) {
+                    gamepad1.rumble(50);
+                }
+            }
+
             if (gamepad2copy.dpad_right||gamepad1copy.dpad_right) {
-                bucket.doubleDrop();
+                dropAll();
             }
 
             if (gamepad1copy.triangle) {
@@ -104,7 +120,7 @@ public class TeleOp1 extends Robot {
                 if (outtakeProgress==outtakePos.EXTENDED) {
                     drop();
                 }
-                else if (extendoProgress==outtakePos.EXTENDED) {
+                else if (extendoProgress==extendoProgress.EXTENDED) {
                     drop();
                 }
                 else {
@@ -119,12 +135,18 @@ public class TeleOp1 extends Robot {
                 transferStates = states.NONE;
                 gamepad1copy.rumble(1000);
             }
+            if (gamepad1copy.dpad_down) {
+                hang();
+                hangPID();
+            }
             if (transferStates==states.NONE) {
                 if (gamepad2copy.right_trigger>0) {
                     slides.moveSlides(gamepad2copy.right_trigger);
+                    //slides.motor1.set(gamepad2copy.right_trigger);
                 }
                 else if (gamepad2copy.left_trigger>0) {
                     slides.moveSlides(-gamepad2copy.left_trigger);
+                    //slides.motor1.set(-gamepad2copy.left_trigger);
                 }
                 else
                     slides.moveSlides(0);
@@ -145,7 +167,7 @@ public class TeleOp1 extends Robot {
                     intake.intake(1);
                 }
 
-                // need to press twice
+
                 if (gamepad2copy.dpad_left) {
                     bucket.setPosition(bucketInitPos);
                     slides.reset();
@@ -167,6 +189,9 @@ public class TeleOp1 extends Robot {
             telemetry.addData("intake current draw", intake.getCurrentDraw());
             telemetry.addData("lockforever", lockForever);
             telemetry.addData("lastintake", lastIntake);
+            telemetry.addData("hub 0 amps", allHubs.get(0).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("hub 1 amps", allHubs.get(1).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("voltage", allHubs.get(1).getInputVoltage(VoltageUnit.VOLTS));
             telemetry.update();
 
             time.reset();

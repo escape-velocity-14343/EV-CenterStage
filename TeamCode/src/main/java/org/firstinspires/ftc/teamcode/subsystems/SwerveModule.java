@@ -15,6 +15,7 @@ import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -46,6 +47,8 @@ public class SwerveModule {
     private double motorRotation = 0.0; // motor based rotation
     private double uncorrectedMotorRotation = 0.0;
 
+    double offset = 0;
+    double maxPower = 1;
 
     public SwerveModule(Motor bottom, Motor top, AnalogEncoder rot, ToggleTelemetry telemetry) {
         this.top = top;
@@ -164,6 +167,9 @@ public class SwerveModule {
         wheel /= headingwheelratio;
         double topP = wheel-heading;
         double bottomP = wheel+heading;
+        topP = Range.clip(topP, -1,1)/maxPower;
+        bottomP = Range.clip(bottomP, -1, 1)/maxPower;
+
 
 
         double [] powers = {topP, bottomP};
@@ -185,6 +191,7 @@ public class SwerveModule {
         motorRotation += (topPosition*kTop-bottomPosition*kBottom)*rotationConstant;
         uncorrectedMotorRotation += (topPosition*kTop-bottomPosition*kBottom)*rotationConstant;
         uncorrectedMotorRotation =  ((uncorrectedMotorRotation%360.0)+360.0)%360.0;
+
         motorRotation = ((motorRotation%360.0)+360.0)%360.0;
         //motorRotation = AngleUnit.normalizeDegrees(motorRotation) ;
         top.resetEncoder();
@@ -216,6 +223,17 @@ public class SwerveModule {
     }
     public static boolean compare(double a, double b, double tolerance) {
         return (Math.abs(a-b)<tolerance);
+    }
+
+    public void setOffset(double offset) {
+        this.offset = offset;
+        lastRotation = rot.getDegrees()+offset;
+
+        lastMotorRotation = motorRotation = rot.getDegrees()+offset;
+        uncorrectedMotorRotation = rot.getDegrees()+offset;
+    }
+    public void setMaxPower(double maxPower) {
+        this.maxPower = maxPower;
     }
 
 }

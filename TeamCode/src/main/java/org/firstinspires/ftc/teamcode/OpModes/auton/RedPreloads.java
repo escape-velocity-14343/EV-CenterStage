@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 
 @Config
 @Autonomous(name="Red Backstage 2+0 ඞ", group="Audience")
+@Disabled
 public class RedPreloads extends AutonTemplate {
 
     public static double forwarddist = 30;

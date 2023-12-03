@@ -13,6 +13,8 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDir
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.OpModes.auton.AutonBase;
+import org.firstinspires.ftc.teamcode.subsystems.Robot;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -22,15 +24,16 @@ import java.util.List;
 
 @Config
 @TeleOp(name = "AprilTagVisionTest", group = "aaa")
-public class VisionTest extends LinearOpMode {
-    private AprilTagProcessor aprilTag;
-    private UndistortProcessor undistort;
+public class VisionTest extends AutonBase {
+    //private AprilTagProcessor aprilTag;
+    //private UndistortProcessor undistort;
 
     private VisionPortal visionPortal;
     public static boolean dewarp = true;
 
     @Override
     public void runOpMode() throws InterruptedException {
+        initialize();
         initAprilTag();
         telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
 
@@ -39,17 +42,17 @@ public class VisionTest extends LinearOpMode {
         }
         while (opModeIsActive()) {
             telemetryAprilTag();
-
+            update();
             // Push telemetry to the Driver Station.
             telemetry.update();
 
             if (dewarp) {
-                visionPortal.setProcessorEnabled(undistort, true);
+                tagPortal.setProcessorEnabled(undistort, true);
             } else {
-                visionPortal.setProcessorEnabled(undistort, false);
+                tagPortal.setProcessorEnabled(undistort, false);
             }
 
-            sleep(20);
+            //sleep(20);
 
         }
 
@@ -59,7 +62,7 @@ public class VisionTest extends LinearOpMode {
     /**
      * Initialize the AprilTag processor.
      */
-    private void initAprilTag() {
+    private void initAprilTag2() {
 
         // Create the AprilTag processor.
         aprilTag = new AprilTagProcessor.Builder()

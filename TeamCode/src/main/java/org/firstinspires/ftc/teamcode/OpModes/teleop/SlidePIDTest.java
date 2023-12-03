@@ -11,27 +11,20 @@ import org.firstinspires.ftc.teamcode.subsystems.Robot;
 @TeleOp
 @Config
 
-public class IntakePIDTEST extends Robot {
-    public static int intakePos = 0;
+public class SlidePIDTest extends Robot {
+    public static int slidePos = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        //initialize();
-        intake = new Intake(hardwareMap);
-        allHubs = hardwareMap.getAll(LynxModule.class);
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-
-        for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
+        initialize();
         waitForStart();
         while (!isStopRequested()) {
             for (LynxModule hub : allHubs) {
                 hub.clearBulkCache();
             }
-            intake.pidIntake(intakePos);
-            telemetry.addData("Intake position", intake.getPosition());
-            telemetry.addData("Target position", intakePos);
+            slides.pidSlides(slidePos);
+            telemetry.addData("Slide position", slides.getPosition());
+            telemetry.addData("Target position", slidePos);
             telemetry.update();
         }
     }

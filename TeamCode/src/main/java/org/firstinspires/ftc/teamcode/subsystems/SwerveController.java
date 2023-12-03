@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
+import org.firstinspires.ftc.teamcode.subsystems.Controllers.IQIDController;
 
 
 @Config
@@ -45,6 +46,7 @@ public class SwerveController extends RobotDrive {
     double lx,ly,rx,ry;
     double[] powers = {0,0,0,0};
     double headinglim = 1;
+    double accellim = 1;
 
     boolean rotationInput = false;
     enum rotationMode {
@@ -59,6 +61,9 @@ public class SwerveController extends RobotDrive {
 
     double lastHeading = 0;
     PIDController headingPID  = new PIDController(0,0,0);
+    IQIDController headingIQID = new IQIDController(0, 0, 0);
+
+    double voltageLimit = 0;
 
 
 
@@ -77,8 +82,7 @@ public class SwerveController extends RobotDrive {
         right = new SwerveModule(new Motor(hMap,"bottomright"),new Motor(hMap,"topright"),new AnalogEncoder(hMap,"rightrot"),telemetry);
 
         right.setSide(true);
-
-        imu = hMap.get(IMU.class,"imu 1");
+        left.setOffset(180); //TODO: fix swerve pod
         voltageSensor = hMap.voltageSensor.iterator().next();
     }
     private void drive(double x, double y, double rot, double botHeading) {
@@ -107,6 +111,15 @@ public class SwerveController extends RobotDrive {
         rt = Math.atan2(ry,rx);
         lt = Math.toDegrees(lt);
         rt = Math.toDegrees(rt);
+        if (voltageSensor.getVoltage()<voltageLimit) {
+            left.setMaxPower(voltageLimit-voltageSensor.getVoltage());
+            right.setMaxPower(voltageLimit-voltageSensor.getVoltage());
+        }
+        else {
+            left.setMaxPower(1);
+            right.setMaxPower(1);
+        }
+
         if (!compare(Math.abs(x)+Math.abs(y)+Math.abs(rot),0.0,0.001)) {
             left.podPidXY(lx,ly);
             right.podPidXY(rx,ry);
@@ -142,13 +155,19 @@ public class SwerveController extends RobotDrive {
         if (!compare(speed,0,0.1)) {
             p/=4;
         }
+        headingIQID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
+        headingIQID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
 
         switch (rotMode) {
             case HEADING_LOCK:
                 headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
                 headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
-                rot = -headingPID.calculate(0);
+                if (!runIQID) {
+                    rot = -headingPID.calculate(0);
+                } else {
+                    rot = -headingIQID.calculate(0);
+                }
                 telemetry.addData("rot", rot);
                 break;
             case PSUEDO_LOCK:
@@ -160,7 +179,11 @@ public class SwerveController extends RobotDrive {
                 headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
                 headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
-                rot = -headingPID.calculate(0);
+                if (!runIQID) {
+                    rot = -headingPID.calculate(0);
+                } else {
+                    rot = -headingIQID.calculate(0);
+                }
                 telemetry.addData("rot", rot);
                 break;
             case LOCKLESS:
@@ -184,7 +207,7 @@ public class SwerveController extends RobotDrive {
         lastHeading = botHeading;
 
         // drive using inputs
-        drive(x,y,Range.clip(rot, -headinglim, headinglim),botHeading);
+        drive(Range.clip(x, -accellim, accellim),Range.clip(y, -accellim, accellim),Range.clip(rot, -headinglim, headinglim),botHeading);
     }
     public void driveRobotCentric(double x, double y, double rot) {
         drive(x,y,rot,0);
@@ -247,9 +270,21 @@ public class SwerveController extends RobotDrive {
     public void setTurnLimit(double lim) {
         headinglim = lim;
     }
+    public void setLimits(double accellimit, double turnlimit) {
+        this.accellim = accellimit;
+        this.headinglim = turnlimit;
+    }
 
     public void setAuton() {
         rotMode = rotationMode.AUTON;
     }
     public void setInit() { rotMode = rotationMode.BASE; }
+    public void setVoltageLimit(double voltage) {
+        this.voltageLimit = voltage;
+    }
+
+    public boolean runIQID = false;
+    public void setIQID() {
+        runIQID = true;
+    }
 }

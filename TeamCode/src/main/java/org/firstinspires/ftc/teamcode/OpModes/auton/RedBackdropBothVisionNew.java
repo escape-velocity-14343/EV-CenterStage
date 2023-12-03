@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 
 @Config
 @Autonomous(name="Red Backstage 2+4 ඞ", group="Audience")
+@Disabled
 public class RedBackdropBothVisionNew extends AutonTemplate {
 
     public static double forwarddist = 30;

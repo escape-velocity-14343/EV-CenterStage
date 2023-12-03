@@ -22,6 +22,7 @@ public class Odometry {
     double lastHeading=0, lastx=0, lasty=0;
     Canvas field = new Canvas();
     TelemetryPacket packet = new TelemetryPacket();
+    double targetx=-10000, targety=-10000;
 
 
     public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
@@ -41,6 +42,10 @@ public class Odometry {
 
 
 
+    }
+    public void setTarget(double x, double y) {
+        targetx = x;
+        targety = y;
     }
     public void update(double botHeading) {
 
@@ -66,9 +71,12 @@ public class Odometry {
         int robotRadius = 8;
         field.strokeCircle(fx, fy, robotRadius);
         double arrowX = new Rotation2d(heading).getCos() * robotRadius, arrowY = new Rotation2d(heading).getSin() * robotRadius;
-        double x1 = fx + arrowX  / 2, y1 = fy + arrowY / 2;
+        double x1 = fx, y1 = fy;
         double x2 = fx + arrowX, y2 = fy+ arrowY;
         field.strokeLine(x1, y1, x2, y2);
+        field.setFill("yellow");
+        field.setStroke("yellow");
+        field.fillCircle(targetx, targety, 2);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
 
 
@@ -97,6 +105,8 @@ public class Odometry {
         dyTotal=0;
         fx=0;
         fy=0;
+        lastx = 0;
+        lasty = 0;
 
     }
     public void reset(double x, double y) {
@@ -111,12 +121,26 @@ public class Odometry {
         dyTotal=0;
         fx=x;
         fy=y;
+        lastx = 0;
+        lasty = 0;
     }
     public double getDx() {
         return dx;
     }
     public double getDy() {
         return dy;
+    }
+    public double getVelocity() {
+        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+    }
+
+    private double moveTol = 0.01;
+    public void setTol(double tol) {
+        this.moveTol = tol;
+    }
+    public boolean isMoving() {
+        double velo = getVelocity();
+        return !(-moveTol < velo && velo < moveTol);
     }
     public Pose2d getPose() {
         return new Pose2d(fx,fy,new Rotation2d(heading));
