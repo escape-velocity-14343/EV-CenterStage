@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.cachinghardwaredevice;
 
+import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACCEPTABLE_SERVO_POS_DELTA;
+
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoController;
 
@@ -14,7 +16,7 @@ public class CachingServo extends CachingHardwareDevice implements Servo {
 	 * @param servo the servo to encapsulate in the caching control
 	 */
 	public CachingServo(Servo servo) {
-		this(servo, 0.01);
+		this(servo, ACCEPTABLE_SERVO_POS_DELTA);
 	}
 	
 	/**

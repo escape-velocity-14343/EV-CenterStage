@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.cachinghardwaredevice;
 
+import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACCEPTABLE_MOTOR_POWER_DELTA;
+
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 public class CachingDcMotorSimple extends CachingHardwareDevice implements DcMotorSimple {
@@ -13,7 +15,7 @@ public class CachingDcMotorSimple extends CachingHardwareDevice implements DcMot
 	 * @param motorSimple the simple motor to encapsulate in the caching control
 	 */
 	public CachingDcMotorSimple(DcMotorSimple motorSimple) {
-		this(motorSimple, 0.02);
+		this(motorSimple, ACCEPTABLE_MOTOR_POWER_DELTA);
 	}
 	
 	/**

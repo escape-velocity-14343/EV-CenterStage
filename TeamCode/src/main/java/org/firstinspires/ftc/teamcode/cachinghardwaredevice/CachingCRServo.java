@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.cachinghardwaredevice;
 
+import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACCEPTABLE_MOTOR_POWER_DELTA;
+
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ServoController;
 
@@ -13,7 +15,7 @@ public class CachingCRServo extends CachingDcMotorSimple implements CRServo {
 	 */
 	
 	public CachingCRServo(CRServo CRServo) {
-		this(CRServo, 0.02);
+		this(CRServo, ACCEPTABLE_MOTOR_POWER_DELTA);
 	}
 	
 	/**
