@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
 import java.util.List;
 
@@ -27,7 +28,12 @@ import java.util.List;
 public abstract class Robot extends LinearOpMode {
 
     // TODO: swerve and odometry implementations
+    // TODO: PID to point implementation
 
+    /**
+     * Subsystems.
+     */
+    public SwerveController swerve;
     public Arm arm;
     public Bucket bucket;
     public IMU imu;
@@ -41,8 +47,24 @@ public abstract class Robot extends LinearOpMode {
     private double imuReading = 0;
     private double headingOffset = 0;
 
+    /**
+     * Timing.
+     */
     public ElapsedTime timer = new ElapsedTime();
     private long lastLoopNanos = timer.nanoseconds();
+
+    /**
+     * PID Config.
+     */
+    public static double kHeadingP = 0.05;
+    public static double kHeadingI = 0;
+    public static double kHeadingD = 0;
+
+    /**
+     * Telemetry.
+     */
+    ToggleTelemetry toggleableTelemetry;
+
 
 
 
@@ -55,8 +77,10 @@ public abstract class Robot extends LinearOpMode {
         }
 
         telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
+        toggleableTelemetry = new ToggleTelemetry(telemetry);
         arm = new Arm(hardwareMap);
         bucket = new Bucket(hardwareMap);
+        swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
 
         imu = hardwareMap.get(IMU.class, "imu 1");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
