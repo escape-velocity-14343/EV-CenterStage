@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -13,7 +14,11 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.R;
+import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
+import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
+import org.firstinspires.ftc.teamcode.pathutils.Point;
 
 import java.util.List;
 
@@ -30,6 +35,7 @@ public abstract class Robot extends LinearOpMode {
     public SwerveController swerve;
     public Arm arm;
     public Bucket bucket;
+    public Odometry odometry;
     public IMU imu;
     public List<LynxModule> allHubs;
     public VoltageSensor voltageSensor;
@@ -79,6 +85,11 @@ public abstract class Robot extends LinearOpMode {
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
 
+    public static double kPosQ = 0.05;
+    public static double kPosI = 0;
+    public static double kPosD = 0;
+    private IQIDController poscontroller = new IQIDController(kPosQ, kPosI, kPosD);
+
     /**
      * Telemetry.
      */
@@ -100,6 +111,7 @@ public abstract class Robot extends LinearOpMode {
         arm = new Arm(hardwareMap);
         bucket = new Bucket(hardwareMap);
         swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
+        odometry = new Odometry(hardwareMap, toggleableTelemetry);
 
         imu = hardwareMap.get(IMU.class, "imu 1");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
@@ -128,11 +140,13 @@ public abstract class Robot extends LinearOpMode {
         botHeading = getHeading();
 
         long loopNanos = timer.nanoseconds() - lastLoopNanos;
+        lastLoopNanos = timer.nanoseconds();
 
+        odometry.update(botHeading);
         arm.update(loopNanos);
         bucket.update();
 
-        lastLoopNanos = timer.nanoseconds();
+
 
         fsmIsDone = false;
 
@@ -204,6 +218,70 @@ public abstract class Robot extends LinearOpMode {
     public void outtake() {
         transferStates = states.OUTTAKE;
         outtakeProgress = outtakeStates.EXTENDED;
+    }
+
+    /*
+     * PID functions!
+     */
+
+    @Deprecated
+    public void goToPoint(double x, double y, double rot) {
+        swerve.driveTo(odometry.getPose(), new Pose2d(x, y, new Rotation2d(rot)));
+    }
+
+    @Deprecated
+    public void goToPoint(double x, double y) {
+        this.goToPoint(x, y, 0);
+    }
+
+    @Deprecated
+    public void goToPoint(Pose2d endPose) {
+        this.goToPoint(endPose.getX(), endPose.getY(), endPose.getRotation().getRadians());
+    }
+
+    @Deprecated
+    public void goToPoint(Point endPoint) {
+        this.goToPoint(endPoint.toPose2d());
+    }
+
+    @Deprecated
+    public void fromPoseGoToPoint(Pose2d startpose, double x, double y, double rot) {
+        this.goToPoint(fromPoseGetPoint(startpose, x, y, rot));
+    }
+
+    @Deprecated
+    public void fromPoseGoToPoint(Pose2d startpose, Point point) {
+        this.goToPoint(fromPoseGetPoint(startpose, point.x, point.y, point.heading));
+    }
+
+    @Deprecated
+    public void fromCurrPosGoToPoint(double x, double y, double rot) {
+        this.goToPoint(fromCurrPoseGetPoint(x, y, rot));
+    }
+
+    @Deprecated
+    public void fromCurrPosGoToPoint(Point point) {
+        this.goToPoint(fromCurrPoseGetPoint(point.x, point.y, point.heading));
+    }
+
+    public Pose2d fromPoseGetPoint(Pose2d startpose, double x, double y, double rot) {
+        return new Pose2d(startpose.getX()+x, startpose.getY()+y, new Rotation2d(startpose.getRotation().getRadians()+rot));
+    }
+
+    public Pose2d fromCurrPoseGetPoint(double x, double y, double rot) {
+        return this.fromPoseGetPoint(odometry.getPose(), x, y, rot);
+    }
+
+    /*
+     * New functions using AutonomousWaypoint.
+     */
+
+    public void goToPoint(AutonomousWaypoint endwaypoint) {
+        swerve.driveTo(odometry.getPose(), endwaypoint);
+    }
+
+    public boolean atPoint() {
+        return swerve.atPoint(odometry.getPose());
     }
 }
 

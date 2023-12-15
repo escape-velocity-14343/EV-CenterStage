@@ -6,6 +6,7 @@ import static org.firstinspires.ftc.teamcode.subsystems.SwerveModule.compare;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.drivebase.RobotDrive;
+import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -17,7 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
-
+import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 
 
 @Config
@@ -63,6 +64,7 @@ public class SwerveController extends RobotDrive {
     double lastHeading = 0;
     PIDController headingPID  = new PIDController(0,0,0);
     IQIDController headingIQID = new IQIDController(0, 0, 0);
+    IQIDController poscontroller = new IQIDController(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
 
     double voltageLimit = 0;
 
@@ -140,6 +142,16 @@ public class SwerveController extends RobotDrive {
         //telemetry.addData("yaw",imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));
 
     }
+
+    /**
+     * For convenience.
+     * @param angle In radians.
+     */
+    public void polarDriveFieldCentric(double angle, double power, double rot) {
+        this.driveFieldCentric(Math.cos(angle)*power, Math.sin(angle)*power, rot);
+    }
+
+
     public void goofyDrive(double direction, double power) {
         left.setPid(p,i,d);
         right.setPid(p,i,d);
@@ -294,5 +306,45 @@ public class SwerveController extends RobotDrive {
     public boolean runIQID = false;
     public void setIQID() {
         runIQID = true;
+    }
+
+    private AutonomousWaypoint targetWaypoint;
+    public void driveTo(Pose2d robotPose, AutonomousWaypoint endWaypoint) {
+        targetWaypoint = endWaypoint;
+        Pose2d endPose = endWaypoint.getPoint().toPose2d();
+        poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
+        endPose = endPose.relativeTo(robotPose);
+        double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
+        double arg = Math.atan2(endPose.getY(), endPose.getX());
+        mag = poscontroller.calculate(mag, 0);
+        double rot = endPose.getRotation().getRadians();
+        if (runIQID) {
+            rot = headingIQID.calculate(rot, 0);
+        } else {
+            rot = headingPID.calculate(rot, 0);
+        }
+        this.polarDriveFieldCentric(arg, mag, rot);
+    }
+
+    public boolean atPoint(Pose2d robotpose) {
+        return targetWaypoint.isAtPoint(robotpose);
+    }
+
+    /**
+     * Caution when using this function! swerve.atPoint() will not work.
+     */
+    public void driveTo(Pose2d robotPose, Pose2d endPose) {
+        poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
+        endPose = endPose.relativeTo(robotPose);
+        double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
+        double arg = Math.atan2(endPose.getY(), endPose.getX());
+        mag = poscontroller.calculate(mag, 0);
+        double rot = endPose.getRotation().getRadians();
+        if (runIQID) {
+            rot = headingIQID.calculate(rot, 0);
+        } else {
+            rot = headingPID.calculate(rot, 0);
+        }
+        this.polarDriveFieldCentric(arg, mag, rot);
     }
 }
