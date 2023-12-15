@@ -1,10 +1,9 @@
-package org.firstinspires.ftc.teamcode.subsytems;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingDcMotor;
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 
@@ -26,8 +25,8 @@ public class Arm {
     private IQIDController slideIQID;
     private IQIDController tiltIQID;
 
-    private double slidePos = 0;
-    private double tiltPos = 0;
+    private int slidePos = 0;
+    private int tiltPos = 0;
 
     /**
      * Ticks per second.
@@ -78,8 +77,17 @@ public class Arm {
     /**
      * @param tolerance In degrees.
      */
-    public boolean armIsTilted(double tolerance) {
+    public boolean isTilted(double tolerance) {
         if (Math.abs(tiltTarget-tiltPos) > tolerance*TILT_TICKS_PER_DEGREE) {
+            return false;
+        } else return true;
+    }
+
+    /**
+     * @param tolerance In degrees.
+     */
+    public boolean isTilted(double tolerance, double degrees) {
+        if (Math.abs(degrees-tiltPos) > tolerance*TILT_TICKS_PER_DEGREE) {
             return false;
         } else return true;
     }
@@ -97,7 +105,7 @@ public class Arm {
      * @param tolerance In ticks.
      * @return If the arm is at the desired extension.
      */
-    public boolean armIsDone(double tolerance) {
+    public boolean isDone(double tolerance) {
         if (Math.abs(this.slideTarget-this.slidePos) > tolerance) {
             return false;
         } else return true;
@@ -115,6 +123,14 @@ public class Arm {
         } else {
             return false;
         }
+    }
+
+    public int getPosition() {
+        return this.slidePos;
+    }
+
+    public double getTilt() {
+        return this.tiltPos / TILT_TICKS_PER_DEGREE;
     }
 
 }

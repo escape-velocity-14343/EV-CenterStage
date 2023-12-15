@@ -1,10 +1,9 @@
-package org.firstinspires.ftc.teamcode.subsytems;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACCEPTABLE_SERVO_POS_DELTA;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingServo;
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
@@ -127,6 +126,10 @@ public class Bucket {
     public void intake() {
         bucketTilt.setPosition(intakePos);
         smartLatch();
+    }
+
+    public void tilt(double pos) {
+        bucketTilt.setPosition(pos);
     }
 
     private boolean compare(double v1, double v2, double tol) {

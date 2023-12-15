@@ -1,12 +1,13 @@
-package org.firstinspires.ftc.teamcode.subsytems;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 
 
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveController.headingwheelratio;
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveController.kBottom;
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveController.kTop;
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveController.optimize;
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveController.rotationConstant;
+
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveController.headingwheelratio;
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveController.kBottom;
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveController.kTop;
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveController.optimize;
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveController.rotationConstant;
 
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Vector2d;
@@ -14,6 +15,7 @@ import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 

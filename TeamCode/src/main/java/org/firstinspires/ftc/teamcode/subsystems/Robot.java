@@ -1,23 +1,17 @@
-package org.firstinspires.ftc.teamcode.subsytems;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
-import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
@@ -39,6 +33,31 @@ public abstract class Robot extends LinearOpMode {
     public IMU imu;
     public List<LynxModule> allHubs;
     public VoltageSensor voltageSensor;
+
+    public enum states {
+        INTAKE,
+        OUTTAKE,
+        AUTO,
+        NONE,
+        INIT
+    }
+
+    private enum intakeStates {
+        EXTENDED,
+        RETRACTED,
+        TILTED
+    }
+
+    private enum outtakeStates {
+        EXTENDED,
+        RETRACTED,
+        TILTED
+    }
+
+    private states transferStates = states.NONE;
+    private intakeStates intakeProgress = intakeStates.EXTENDED;
+    private outtakeStates outtakeProgress = outtakeStates.EXTENDED;
+    private boolean fsmIsDone = false;
 
     /**
      * In radians.
@@ -109,13 +128,82 @@ public abstract class Robot extends LinearOpMode {
         botHeading = getHeading();
 
         long loopNanos = timer.nanoseconds() - lastLoopNanos;
-        
+
         arm.update(loopNanos);
         bucket.update();
 
         lastLoopNanos = timer.nanoseconds();
 
+        fsmIsDone = false;
 
+        switch (transferStates) {
+            case INTAKE:
+                switch (intakeProgress) {
+                    case EXTENDED:
+                        // if arm is already in right position don't do anything
+                        if (arm.isTilted(1, 180)) {
+                            intakeProgress = intakeStates.TILTED;
+                        } else if (arm.getPosition() < 300) {
+                            intakeProgress = intakeStates.RETRACTED;
+                        } else {
+                            arm.moveSlides(-1);
+                        }
+                        break;
+                    case RETRACTED:
+                        fsmIsDone = true;
+                        arm.tiltArm(180);
+                        if (arm.isTilted(1)) {
+                            intakeProgress = intakeStates.TILTED;
+                        }
+                        break;
+                    case TILTED:
+                        bucket.intake();
+                        fsmIsDone = true;
+                }
+
+            case OUTTAKE:
+                switch (outtakeProgress) {
+                    case EXTENDED:
+                        // if arm is already in right position don't do anything
+                        if (arm.isTilted(1, 0)) {
+                            outtakeProgress = outtakeStates.TILTED;
+                        } else if (arm.getPosition() < 300) {
+                            outtakeProgress = outtakeStates.RETRACTED;
+                        } else {
+                            arm.moveSlides(-1);
+                        }
+                        break;
+                    case RETRACTED:
+                        fsmIsDone = true;
+                        arm.tiltArm(0);
+                        if (arm.isTilted(1)) {
+                            outtakeProgress = outtakeStates.TILTED;
+                        }
+                        break;
+                    case TILTED:
+                        bucket.tilt(0.5);
+                        fsmIsDone = true;
+                }
+            case INIT:
+                bucket.intake();
+        }
+
+
+
+    }
+
+    public states getState() { return transferStates; }
+
+    public boolean armIsDone() { return fsmIsDone; }
+
+    public void intake() {
+        transferStates = states.INTAKE;
+        intakeProgress = intakeStates.EXTENDED;
+    }
+
+    public void outtake() {
+        transferStates = states.OUTTAKE;
+        outtakeProgress = outtakeStates.EXTENDED;
     }
 }
 

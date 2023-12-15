@@ -1,6 +1,7 @@
-package org.firstinspires.ftc.teamcode.subsytems;
+package org.firstinspires.ftc.teamcode.subsystems;
 
-import static org.firstinspires.ftc.teamcode.subsytems.SwerveModule.compare;
+import static org.firstinspires.ftc.teamcode.subsystems.SwerveModule.compare;
+
 
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDController;
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
+
 
 
 @Config
@@ -64,7 +66,9 @@ public class SwerveController extends RobotDrive {
 
     double voltageLimit = 0;
 
+
     private Robot robot;
+
 
 
     Translation2d translation = new Translation2d();
@@ -74,6 +78,7 @@ public class SwerveController extends RobotDrive {
     VoltageSensor voltageSensor;
     boolean headingLock = false;
     double headingLockAngle = 0;
+
     public SwerveController(HardwareMap hMap, ToggleTelemetry telemetry, Robot robot) {
         this.telemetry = telemetry;
         left = new SwerveModule(new Motor(hMap,"bottomleft"),new Motor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
@@ -149,7 +154,9 @@ public class SwerveController extends RobotDrive {
 
     }
     public void driveFieldCentric(double x, double y, double rot) {
+
         double botHeading = robot.getHeading();
+
         telemetry.addData("heading",Math.toDegrees(botHeading));
         double speed = Math.abs(x)+Math.abs(y);
         double p = Robot.kHeadingP;
