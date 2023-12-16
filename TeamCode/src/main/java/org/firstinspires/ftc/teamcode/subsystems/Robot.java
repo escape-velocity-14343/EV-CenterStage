@@ -44,6 +44,7 @@ public abstract class Robot extends LinearOpMode {
         INTAKE,
         OUTTAKE,
         AUTO,
+        FOLDED,
         NONE,
         INIT
     }
@@ -121,7 +122,7 @@ public abstract class Robot extends LinearOpMode {
     }
 
     public void setPoseEstimate(Pose2d pose) {
-        // TODO: add odometry.reset here
+        odometry.reset(pose.getX(), pose.getY());
         headingOffset = pose.getRotation().getRadians()-botHeading;
     }
 
@@ -142,7 +143,7 @@ public abstract class Robot extends LinearOpMode {
         long loopNanos = timer.nanoseconds() - lastLoopNanos;
         lastLoopNanos = timer.nanoseconds();
 
-        odometry.update(botHeading);
+        odometry.update(botHeading, loopNanos);
         arm.update(loopNanos);
         bucket.update();
 
@@ -200,15 +201,20 @@ public abstract class Robot extends LinearOpMode {
                 }
             case INIT:
                 bucket.intake();
+            case FOLDED:
+                bucket.intake();
+                arm.extend(0);
+                arm.tiltArm(0);
         }
 
+        telemetry.update();
 
 
     }
 
     public states getState() { return transferStates; }
 
-    public boolean armIsDone() { return fsmIsDone; }
+    public boolean armFSMIsDone() { return fsmIsDone; }
 
     public void intake() {
         transferStates = states.INTAKE;
@@ -218,6 +224,14 @@ public abstract class Robot extends LinearOpMode {
     public void outtake() {
         transferStates = states.OUTTAKE;
         outtakeProgress = outtakeStates.EXTENDED;
+    }
+
+    public void foldArm() {
+        transferStates = states.FOLDED;
+    }
+
+    public void setFSMtoAuto() {
+        transferStates = states.AUTO;
     }
 
     /*
@@ -282,6 +296,14 @@ public abstract class Robot extends LinearOpMode {
 
     public boolean atPoint() {
         return swerve.atPoint(odometry.getPose());
+    }
+
+    /**
+     * Stall detection using motor powers vs movement.
+     * Swerve class internally corrects for initial acceleration so this should always be accurate.
+     */
+    public boolean swerveIsStalled() {
+        return (swerve.isMoving() && !odometry.isMoving());
     }
 }
 

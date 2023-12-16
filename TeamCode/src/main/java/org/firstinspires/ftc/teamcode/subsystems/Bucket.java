@@ -86,13 +86,13 @@ public class Bucket {
     /**
      * Allows single dropping. Booleans specify which side to unlatch (true means unlatch, false means latch).
      */
-    public void setlatch(boolean unlatchLeft, boolean unlatchRight) {
-        if (unlatchLeft) {
+    public void setlatch(boolean latchLeft, boolean latchRight) {
+        if (!latchLeft) {
             leftLatch.setPosition(unlatchPos);
         } else {
             leftLatch.setPosition(latchPos);
         }
-        if (unlatchRight) {
+        if (!latchRight) {
             rightLatch.setPosition(unlatchPos);
         } else {
             rightLatch.setPosition(latchPos);

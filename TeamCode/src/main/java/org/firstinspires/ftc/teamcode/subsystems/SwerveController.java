@@ -12,9 +12,11 @@ import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
@@ -71,6 +73,12 @@ public class SwerveController extends RobotDrive {
 
     private Robot robot;
 
+    // stall detection things
+    private boolean isMoving = false;
+    private double moveMinimum = 0.3;
+    // this gets reset when we stop moving (from swerve perspective)
+    private ElapsedTime moveTimer = new ElapsedTime();
+
 
 
     Translation2d translation = new Translation2d();
@@ -83,10 +91,10 @@ public class SwerveController extends RobotDrive {
 
     public SwerveController(HardwareMap hMap, ToggleTelemetry telemetry, Robot robot) {
         this.telemetry = telemetry;
-        left = new SwerveModule(new Motor(hMap,"bottomleft"),new Motor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
+        left = new SwerveModule(new CachingMotor(hMap,"bottomleft"),new CachingMotor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
 
         left.setSide(false);
-        right = new SwerveModule(new Motor(hMap,"bottomright"),new Motor(hMap,"topright"),new AnalogEncoder(hMap,"rightrot"),telemetry);
+        right = new SwerveModule(new CachingMotor(hMap,"bottomright"),new CachingMotor(hMap,"topright"),new AnalogEncoder(hMap,"rightrot"),telemetry);
 
         right.setSide(true);
         left.setOffset(180); //TODO: fix swerve pod
@@ -97,6 +105,12 @@ public class SwerveController extends RobotDrive {
 
         // normalize
         double scalar = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        if (scalar > moveMinimum) {
+            isMoving = true;
+        } else {
+            isMoving = false;
+            moveTimer.reset();
+        }
         if (scalar > 1) {
             x = x / scalar;
             y = y / scalar;
@@ -303,13 +317,14 @@ public class SwerveController extends RobotDrive {
         this.voltageLimit = voltage;
     }
 
-    public boolean runIQID = false;
-    public void setIQID() {
-        runIQID = true;
+    public boolean runIQID = true;
+    public void setIQID(boolean runIQID) {
+        this.runIQID = runIQID;
     }
 
     private AutonomousWaypoint targetWaypoint;
     public void driveTo(Pose2d robotPose, AutonomousWaypoint endWaypoint) {
+        this.setAuton();
         targetWaypoint = endWaypoint;
         Pose2d endPose = endWaypoint.getPoint().toPose2d();
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
@@ -333,6 +348,7 @@ public class SwerveController extends RobotDrive {
     /**
      * Caution when using this function! swerve.atPoint() will not work.
      */
+    @Deprecated
     public void driveTo(Pose2d robotPose, Pose2d endPose) {
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
         endPose = endPose.relativeTo(robotPose);
@@ -346,5 +362,18 @@ public class SwerveController extends RobotDrive {
             rot = headingPID.calculate(rot, 0);
         }
         this.polarDriveFieldCentric(arg, mag, rot);
+    }
+
+    private long MINIMUM_START_MOVEMENT_NANOS = 100 * 1000000; // ms * conversion (1e6)
+
+    /**
+     * Sets the amount of time it takes until swerve starts moving, after a drive command has been given.
+     */
+    public void setMinMoveSeconds(double seconds) {
+        MINIMUM_START_MOVEMENT_NANOS = (long) (seconds * 1e9);
+    }
+
+    public boolean isMoving() {
+        return (this.isMoving && moveTimer.nanoseconds() > MINIMUM_START_MOVEMENT_NANOS);
     }
 }

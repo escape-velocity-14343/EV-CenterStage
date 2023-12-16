@@ -33,6 +33,8 @@ public class Odometry {
     public static boolean reverseX = false;
     public static boolean reverseY = true;
 
+    private long lastLoopNanos = 1;
+
 
     public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
         this.telemetry = telemetry;
@@ -56,7 +58,9 @@ public class Odometry {
         targetx = x;
         targety = y;
     }
-    public void update(double botHeading) {
+    public void update(double botHeading, long loopNanos) {
+
+        lastLoopNanos = loopNanos;
 
         heading = botHeading;
         dh = AngleUnit.normalizeRadians(heading-lastHeading) ;
@@ -139,8 +143,12 @@ public class Odometry {
     public double getDy() {
         return dy;
     }
+
+    /**
+     * @return Inches per second. Time is calculated based on last odometry update call.
+     */
     public double getVelocity() {
-        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2))/(lastLoopNanos/1e9);
     }
 
     private double moveTol = 0.01;

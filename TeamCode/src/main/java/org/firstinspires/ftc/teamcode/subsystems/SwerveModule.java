@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 
@@ -23,7 +24,7 @@ import java.util.Arrays;
 
 public class SwerveModule {
 
-    Motor top,bottom;
+    CachingMotor top,bottom;
     AnalogEncoder rot;
     ToggleTelemetry telemetry;
     PIDController pid = new PIDController(0.01, 0.0, 0.02);
@@ -46,7 +47,7 @@ public class SwerveModule {
     double offset = 0;
     double maxPower = 1;
 
-    public SwerveModule(Motor bottom, Motor top, AnalogEncoder rot, ToggleTelemetry telemetry) {
+    public SwerveModule(CachingMotor bottom, CachingMotor top, AnalogEncoder rot, ToggleTelemetry telemetry) {
         this.top = top;
         this.bottom = bottom;
         this.rot = rot;
