@@ -4,6 +4,8 @@ import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACC
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingServo;
 import org.firstinspires.ftc.teamcode.drivers.APDS9960;
@@ -23,12 +25,15 @@ public class Bucket {
     private int numPixels = 0;
 
     // TODO: empirically find all of these
-    public static double latchPos = 0;
+    public static double latchPos = 0.2;
     public static double unlatchPos = 1;
     public static double doublePixelPos = 0.5;
     public static double intakePos = 0;
     public static double outtakePos = 1;
     public static int intakeMaxProx = 170;
+    public static double pixelInDelaySeconds = 0.3;
+    private ElapsedTime leftPixelInTimer = new ElapsedTime();
+    private ElapsedTime rightPixelInTimer = new ElapsedTime();
 
     public Bucket(HardwareMap hmap) {
         leftLatch = new CachingServo(hmap.servo.get("leftLatch"));
@@ -36,6 +41,7 @@ public class Bucket {
         bucketTilt = new CachingServo(hmap.servo.get("bucketTilt"));
         leftSensor = APDS9960.fromHMap(hmap, "bucketLeftSensor");
         rightSensor = APDS9960.fromHMap(hmap, "bucketRightSensor");
+        rightLatch.setDirection(Servo.Direction.REVERSE);
     }
 
     /**
@@ -47,6 +53,12 @@ public class Bucket {
         int rightprox = rightSensor.getProximity();
         leftHasPixels = leftprox < intakeMaxProx;
         rightHasPixels = rightprox < intakeMaxProx;
+        if (!leftHasPixels) {
+            leftPixelInTimer.reset();
+        }
+        if (!rightHasPixels) {
+            rightPixelInTimer.reset();
+        }
         numPixels = (leftHasPixels?1:0) + (rightHasPixels?1:0);
 
     }
@@ -99,16 +111,32 @@ public class Bucket {
         }
     }
 
+    public void setLeftLatch(boolean unlatchRight) {
+        if (unlatchRight) {
+            rightLatch.setPosition(unlatchPos);
+        } else {
+            rightLatch.setPosition(latchPos);
+        }
+    }
+
+    public void setRightLatch(boolean unlatchRight) {
+        if (unlatchRight) {
+            leftLatch.setPosition(unlatchPos);
+        } else {
+            leftLatch.setPosition(latchPos);
+        }
+    }
+
     /**
      * Latches only the sides that have pixels in them.
      */
     public void smartLatch() {
-        if (leftHasPixels) {
+        if (leftHasPixels && leftPixelInTimer.seconds() > pixelInDelaySeconds) {
             leftLatch.setPosition(latchPos);
         } else {
             leftLatch.setPosition(unlatchPos);
         }
-        if (rightHasPixels) {
+        if (rightHasPixels && rightPixelInTimer.seconds() > pixelInDelaySeconds) {
             rightLatch.setPosition(latchPos);
         } else {
             rightLatch.setPosition(unlatchPos);
