@@ -47,6 +47,7 @@ public abstract class Robot extends LinearOpMode {
         FOLDED,
         NONE,
         INIT
+
     }
 
     private enum intakeStates {

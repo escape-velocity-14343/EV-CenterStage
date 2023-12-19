@@ -156,6 +156,11 @@ public class Bucket {
         smartLatch();
     }
 
+    public void frontIntake() {
+        bucketTilt.setPosition(1-intakePos);
+        smartLatch();
+    }
+
     public void tilt(double pos) {
         bucketTilt.setPosition(pos);
     }

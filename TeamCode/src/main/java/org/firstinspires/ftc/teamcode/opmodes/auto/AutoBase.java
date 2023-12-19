@@ -124,7 +124,7 @@ public abstract class AutoBase extends Robot {
                         setState(210, 110);
                         break;
                     case CENTER:
-                        setState(120);
+                        setState(120, 125);
                         break;
                     case BACKSTAGE:
                         setState(230, 130);
@@ -156,7 +156,7 @@ public abstract class AutoBase extends Robot {
                 goToPoint(new AutonomousWaypoint(-12, -29.41, 0)
                         .setBlueAudienceOffset(-24, 0, 0));
                 arm.extend(PURPLE_PIXEL_ARM_EXTENSION_VALUE);
-                if (atPoint()) {
+                if (atPoint() && arm.isDone(10)) {
                     setState(111);
                 }
                 // tilt arm & drop
@@ -175,13 +175,29 @@ public abstract class AutoBase extends Robot {
             }
 
             // center
+            // audience case
+            else if (state == 125) {
+                goToPoint(new AutonomousWaypoint(-14, -14, Math.PI / 2)
+                        .setBlueHeadingReversed());
+                arm.extend(PURPLE_PIXEL_ARM_EXTENSION_VALUE);
+                if (atPoint() && arm.isDone(10)) {
+                    setState(126);
+                }
+            } else if (state == 126) {
+                arm.tiltArm(180);
+                bucket.frontIntake();
+                if (arm.isTilted(1)) {
+                    bucket.setlatch(false, true);
+                    setState(300);
+                }
+            }
+
             // move to purple and drop
             else if (state == 120) {
                 goToPoint(new AutonomousWaypoint(12, -31, Math.PI / 2)
-                        .setAudienceOffset(-24, 0, 0)
                         .setBlueHeadingReversed());
                 arm.extend(PURPLE_PIXEL_ARM_EXTENSION_VALUE);
-                if (atPoint()) {
+                if (atPoint() && arm.isDone(10)) {
                     bucket.setlatch(false, true);
                     setState(121);
                 }
@@ -243,6 +259,26 @@ public abstract class AutoBase extends Robot {
             } else if (state == 232) {
                 if (timer.seconds() > YELLOW_PIXEL_DROP_TIME) {
                     setState(350);
+                }
+            }
+
+            // stage door cross
+            else if (state == 300) {
+                goToPoint(new AutonomousWaypoint(-15, -12, 0, true));
+                if (atPoint()) {
+                    setState(301);
+                }
+            } else if (state == 301) {
+                goToPoint(new AutonomousWaypoint(12+(propPosition==propPositions.AUDIENCE?3:0), -12, 0, true));
+                if (atPoint()) {
+                    switch (propPosition) {
+                        case AUDIENCE:
+                            setState(210);
+                        case CENTER:
+                            setState(225);
+                        case BACKSTAGE:
+                            setState(230);
+                    }
                 }
             }
 
