@@ -16,9 +16,9 @@ public class BucketTest extends LinearOpMode {
         while (opModeIsActive()) {
             bucket.update();
             if (gamepad1.dpad_left) {
-                bucket.setLeftLatch(true);
+                bucket.setLeftLatch(false);
             } else if (gamepad1.dpad_right) {
-                bucket.setRightLatch(true);
+                bucket.setRightLatch(false);
             } else if (gamepad1.dpad_down) {
                 bucket.unlatch();
             } else if (gamepad1.dpad_up) {

@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
+import org.firstinspires.ftc.teamcode.subsystems.ArmIVK;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 import org.firstinspires.ftc.teamcode.vision.TeamPropProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -24,6 +25,8 @@ public abstract class AutoBase extends Robot {
      */
     public static double PURPLE_PIXEL_DROP_TIME = 0.5;
     public static double YELLOW_PIXEL_DROP_TIME = 0.5;
+    public static double STACK_INTAKE_TIME = 0.5;
+    public static double STACK_OUTTAKE_TIME = 0.5;
 
     public static int PURPLE_PIXEL_ARM_EXTENSION_VALUE = 200;
     public static int YELLOW_PIXEL_ARM_EXTENSION_VALUE = 1000;
@@ -102,18 +105,23 @@ public abstract class AutoBase extends Robot {
 
         initPropPortal(propProcessor);
 
+        int cycles = 3;
+
         while (opModeInInit()) {
             update();
             bucket.intake();
             updatePropDetection();
             // TODO: retune starting position
-            setPoseEstimate(new AutonomousWaypoint(12, -65.8, Math.PI/2)
+            setPoseEstimate(new AutonomousWaypoint(12, -64.8, Math.PI/2)
                     .setAudienceOffset(-24, 0, 0)
                     .setBlueHeadingReversed()
                     .getPoint().toPose2d());
         }
 
         timer.reset();
+
+        int cycleSlideExtension = 2500;
+        int cyclenum = 0;
 
         // send to 2+0 state
         while (opModeIsActive()) {
@@ -194,7 +202,9 @@ public abstract class AutoBase extends Robot {
 
             // move to purple and drop
             else if (state == 120) {
-                goToPoint(new AutonomousWaypoint(12, -31, Math.PI / 2)
+                goToPoint(new AutonomousWaypoint(12, -35.76, Math.PI / 2)
+                        .setAudienceOffset(-24, 0, 0)
+
                         .setBlueHeadingReversed());
                 arm.extend(PURPLE_PIXEL_ARM_EXTENSION_VALUE);
                 if (atPoint() && arm.isDone(10)) {
@@ -262,6 +272,7 @@ public abstract class AutoBase extends Robot {
                 }
             }
 
+
             // stage door cross
             else if (state == 300) {
                 goToPoint(new AutonomousWaypoint(-15, -12, 0, true));
@@ -281,6 +292,92 @@ public abstract class AutoBase extends Robot {
                     }
                 }
             }
+
+            // go to normal cycle position
+            else if (state == 350) {
+                goToPoint(new AutonomousWaypoint(8, -36, 0));
+                if (atPoint()) {
+                    intake();
+                    setState(400);
+                }
+            }
+
+            // cycle close stack
+            else if (state == 400) {
+                setIntake(175);
+
+                arm.extend(cycleSlideExtension);
+                if (arm.isStalled() && arm.getPosition() > 2300) {
+                    cycleSlideExtension = arm.getPosition();
+                }
+                if (arm.isDone(10)) {
+                    setIntake(178);
+                    setState(401);
+                }
+            } else if (state == 401) {
+                if (arm.isTilted(1)) {
+                    if (bucket.getNumPixels() > 0) {
+                        bucket.smartLatch();
+                        setState(402);
+                    } else {
+                        setState(950);
+                    }
+                }
+            } else if (state == 402) {
+                if (timer.seconds() > STACK_INTAKE_TIME) {
+                    setState(403);
+                }
+            } else if (state == 403) {
+                setIntake(175);
+                arm.extend(100);
+                if (arm.isDone(10) && arm.isTilted(1)) {
+                    setState(510);
+                }
+            }
+
+            else if (state == 510) {
+                outtake();
+                setOuttake(53, 2*cyclenum*1.44337567);
+                setState(511);
+            } else if (state == 511) {
+                if (arm.isStalled()) {
+                    // this is dangerous and bad!!!
+                    ArmIVK.setSlideExtension(arm.getPosition());
+                }
+                if (arm.isDone(10) && arm.isTilted(1)) {
+                    setState(512);
+                }
+            } else if (state == 512) {
+                // prevent further arm movement to ensure there is no pressure on the stack
+                setFSMtoAuto();
+                arm.holdPosition();
+                bucket.dropFromStack();
+                if (timer.seconds() > STACK_OUTTAKE_TIME) {
+                    cyclenum++;
+                    if (cyclenum >= cycles) {
+                        setState(950);
+                    } else {
+                        setState(400);
+                    }
+                }
+
+            }
+
+            // park state from backdrop scoring pos
+            else if (state == 950) {
+                outtake();
+                setOuttake(46, 3);
+                setState(951);
+            } else if (state == 951) {
+                if (arm.isDone(10) && arm.isTilted(1)) {
+                    requestOpModeStop();
+                }
+                if (arm.isStalled()) {
+                    requestOpModeStop();
+                }
+            }
+
+
 
             // failsafe EMSTOP state
             else if (state == 999) {

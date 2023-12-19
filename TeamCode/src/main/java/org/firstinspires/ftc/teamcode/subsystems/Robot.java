@@ -9,9 +9,12 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.hardware.usb.RobotArmingStateNotifier;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.R;
@@ -79,6 +82,7 @@ public abstract class Robot extends LinearOpMode {
      */
     public ElapsedTime timer = new ElapsedTime();
     private long lastLoopNanos = timer.nanoseconds();
+    public long loopNanos = 0;
 
     /**
      * PID Config.
@@ -97,6 +101,19 @@ public abstract class Robot extends LinearOpMode {
      */
     ToggleTelemetry toggleableTelemetry;
 
+    /**
+     * Control Config.
+     */
+    public Gamepad gamepad1c = new Gamepad();
+    public Gamepad gamepad2c = new Gamepad();
+
+    /**
+     * FSM values.
+     */
+    private double lastArmIVKHeight = 0;
+    private double lastArmIVKDistance = 0;
+    private double intakeTilt = 180;
+
 
 
 
@@ -114,6 +131,9 @@ public abstract class Robot extends LinearOpMode {
         bucket = new Bucket(hardwareMap);
         swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
         odometry = new Odometry(hardwareMap, toggleableTelemetry);
+
+        swerve.setInit();
+        transferStates = states.INIT;
 
         imu = hardwareMap.get(IMU.class, "imu 1");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
@@ -138,16 +158,17 @@ public abstract class Robot extends LinearOpMode {
         for (LynxModule hub : allHubs) {
             hub.clearBulkCache();
         }
+        gamepad1c.copy(gamepad1);
+        gamepad2c.copy(gamepad2);
         imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
         botHeading = getHeading();
 
-        long loopNanos = timer.nanoseconds() - lastLoopNanos;
+        loopNanos = timer.nanoseconds() - lastLoopNanos;
         lastLoopNanos = timer.nanoseconds();
 
         odometry.update(botHeading, loopNanos);
         arm.update(loopNanos);
         bucket.update();
-
 
 
         fsmIsDone = false;
@@ -157,7 +178,7 @@ public abstract class Robot extends LinearOpMode {
                 switch (intakeProgress) {
                     case EXTENDED:
                         // if arm is already in right position don't do anything
-                        if (arm.isTilted(1, 180)) {
+                        if (arm.isTilted(1, intakeTilt)) {
                             intakeProgress = intakeStates.TILTED;
                         } else if (arm.getPosition() < 300) {
                             intakeProgress = intakeStates.RETRACTED;
@@ -167,37 +188,51 @@ public abstract class Robot extends LinearOpMode {
                         break;
                     case RETRACTED:
                         fsmIsDone = true;
-                        arm.tiltArm(180);
+                        arm.tiltArm(intakeTilt);
                         if (arm.isTilted(1)) {
                             intakeProgress = intakeStates.TILTED;
                         }
                         break;
                     case TILTED:
+                        // tilt if the arm is in a reasonable position to tilt
+                        if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
+                            arm.tiltArm(intakeTilt);
+                        }
                         bucket.intake();
+                        bucket.smartLatch();
                         fsmIsDone = true;
                 }
 
             case OUTTAKE:
                 switch (outtakeProgress) {
                     case EXTENDED:
+                        // go to last known arm params
+                        // if it doesn't work set to defaults
+                        if (!calcArmIVK(getArmDistance(), getArmHeight())) {
+                            calcArmIVK(10, 0);
+                        }
+
                         // if arm is already in right position don't do anything
-                        if (arm.isTilted(1, 0)) {
+                        if (arm.isTilted(1, ArmIVK.getArmAngle())) {
+                            swerve.headingLock(true, headingOffset);
                             outtakeProgress = outtakeStates.TILTED;
                         } else if (arm.getPosition() < 300) {
+                            swerve.headingLock(true, headingOffset);
                             outtakeProgress = outtakeStates.RETRACTED;
                         } else {
                             arm.moveSlides(-1);
                         }
+
                         break;
                     case RETRACTED:
                         fsmIsDone = true;
-                        arm.tiltArm(0);
+                        goToArmIVK();
                         if (arm.isTilted(1)) {
                             outtakeProgress = outtakeStates.TILTED;
                         }
                         break;
                     case TILTED:
-                        bucket.tilt(0.5);
+                        goToArmIVK();
                         fsmIsDone = true;
                 }
             case INIT:
@@ -218,21 +253,70 @@ public abstract class Robot extends LinearOpMode {
     public boolean armFSMIsDone() { return fsmIsDone; }
 
     public void intake() {
-        transferStates = states.INTAKE;
-        intakeProgress = intakeStates.EXTENDED;
+        this.transferStates = states.INTAKE;
+        this.intakeProgress = intakeStates.EXTENDED;
+    }
+
+    public void setIntake(double tilt) {
+        this.intakeTilt = tilt;
     }
 
     public void outtake() {
-        transferStates = states.OUTTAKE;
-        outtakeProgress = outtakeStates.EXTENDED;
+        this.transferStates = states.OUTTAKE;
+        this.outtakeProgress = outtakeStates.EXTENDED;
+    }
+
+    public void setOuttake(double distance, double height) {
+        calcArmIVK(distance, height);
     }
 
     public void foldArm() {
-        transferStates = states.FOLDED;
+        this.transferStates = states.FOLDED;
     }
 
+    /**
+     * Allows for manual control of the arm in the autonomous.
+     */
     public void setFSMtoAuto() {
-        transferStates = states.AUTO;
+        this.transferStates = states.AUTO;
+    }
+
+    public boolean inOuttake() {
+        return transferStates == states.OUTTAKE;
+    }
+
+    public boolean inIntake() {
+        return  transferStates == states.INTAKE;
+    }
+
+    public boolean isDone() {
+        return fsmIsDone;
+    }
+
+    /**
+     * @param height From the lowest possible pixel slot, measured in pixel slots.
+     */
+    public boolean calcArmIVK(double distance, double height) {
+        height = Range.clip(height, 0, 7);
+        // don't allow scoring from more than 2.5 tiles away to prevent minors
+        distance = Range.clip(distance, 0, 60);
+        lastArmIVKHeight = height;
+        lastArmIVKDistance = distance;
+        return ArmIVK.calcIVK(distance, height+3);
+    }
+
+    public double getArmHeight() {
+        return lastArmIVKHeight;
+    }
+
+    public double getArmDistance() {
+        return lastArmIVKDistance;
+    }
+
+    public void goToArmIVK() {
+        arm.extend(ArmIVK.getSlideExtension());
+        arm.tiltArm(ArmIVK.getArmAngle());
+        bucket.tilt(ArmIVK.getBucketTilt());
     }
 
     /*

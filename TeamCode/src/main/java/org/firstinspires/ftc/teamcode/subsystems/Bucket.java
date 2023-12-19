@@ -27,13 +27,15 @@ public class Bucket {
     // TODO: empirically find all of these
     public static double latchPos = 0.2;
     public static double unlatchPos = 1;
-    public static double doublePixelPos = 0.5;
+    public static double doublePixelPos = 0.8;
     public static double intakePos = 0;
     public static double outtakePos = 1;
     public static int intakeMaxProx = 170;
-    public static double pixelInDelaySeconds = 0.3;
+    public static double pixelInDelaySeconds = 0.1;
     private ElapsedTime leftPixelInTimer = new ElapsedTime();
     private ElapsedTime rightPixelInTimer = new ElapsedTime();
+
+    public boolean disableAutoLatch = false;
 
     public Bucket(HardwareMap hmap) {
         leftLatch = new CachingServo(hmap.servo.get("leftLatch"));
@@ -111,16 +113,16 @@ public class Bucket {
         }
     }
 
-    public void setLeftLatch(boolean unlatchRight) {
-        if (unlatchRight) {
+    public void setLeftLatch(boolean latchLeft) {
+        if (!latchLeft) {
             rightLatch.setPosition(unlatchPos);
         } else {
             rightLatch.setPosition(latchPos);
         }
     }
 
-    public void setRightLatch(boolean unlatchRight) {
-        if (unlatchRight) {
+    public void setRightLatch(boolean latchRight) {
+        if (!latchRight) {
             leftLatch.setPosition(unlatchPos);
         } else {
             leftLatch.setPosition(latchPos);
@@ -131,15 +133,17 @@ public class Bucket {
      * Latches only the sides that have pixels in them.
      */
     public void smartLatch() {
-        if (leftHasPixels && leftPixelInTimer.seconds() > pixelInDelaySeconds) {
-            leftLatch.setPosition(latchPos);
-        } else {
-            leftLatch.setPosition(unlatchPos);
-        }
-        if (rightHasPixels && rightPixelInTimer.seconds() > pixelInDelaySeconds) {
-            rightLatch.setPosition(latchPos);
-        } else {
-            rightLatch.setPosition(unlatchPos);
+        if (!disableAutoLatch) {
+            if (leftHasPixels && leftPixelInTimer.seconds() > pixelInDelaySeconds) {
+                leftLatch.setPosition(latchPos);
+            } else {
+                leftLatch.setPosition(unlatchPos);
+            }
+            if (rightHasPixels && rightPixelInTimer.seconds() > pixelInDelaySeconds) {
+                rightLatch.setPosition(latchPos);
+            } else {
+                rightLatch.setPosition(unlatchPos);
+            }
         }
     }
 

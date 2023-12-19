@@ -7,6 +7,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.drivebase.RobotDrive;
 import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -70,6 +71,8 @@ public class SwerveController extends RobotDrive {
 
     double voltageLimit = 0;
 
+    private Rotation2d lastMovement = new Rotation2d();
+
 
     private Robot robot;
 
@@ -102,6 +105,7 @@ public class SwerveController extends RobotDrive {
         voltageSensor = robot.voltageSensor;
     }
     private void drive(double x, double y, double rot, double botHeading) {
+
 
         // normalize
         double scalar = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
@@ -143,12 +147,13 @@ public class SwerveController extends RobotDrive {
         }
 
         if (!compare(Math.abs(x)+Math.abs(y)+Math.abs(rot),0.0,0.001)) {
+            lastMovement = new Rotation2d(x, y);
             left.podPidXY(lx,ly);
             right.podPidXY(rx,ry);
         }
         else {
-            left.podPid(0.0, left.getRotation());
-            right.podPid(0.0, right.getRotation());
+            left.podPid(0.0, lastMovement.getDegrees());
+            right.podPid(0.0, lastMovement.getDegrees());
         }
         //telemetry.addData("voltage", voltageSensor.getVoltage());
         //telemetry.addData("Left encoder", left.rot.getDegrees());

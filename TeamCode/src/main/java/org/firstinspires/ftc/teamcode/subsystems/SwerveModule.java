@@ -97,7 +97,7 @@ public class SwerveModule {
     /**
     * Moves the pod in a specific direction, with a specific speed
     * @param wheel the speed to drive the pod
-    * @param heading the direction to move the pod in, relative to the robot
+    * @param heading the direction to move the pod in, relative to the robot (in degrees)
     */
     public void podPid(double wheel, double heading) {
         double rotation = rot.getDegrees();

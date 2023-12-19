@@ -10,13 +10,15 @@ import org.firstinspires.ftc.teamcode.controllers.IQIDController;
 @Config
 public class Arm {
     // TODO: entire class needs implementation and testing on hardware
-    private CachingMotor slideMotor;
+    private CachingMotor slideMotor1;
+    private CachingMotor slideMotor0;
     private CachingMotor tiltMotor;
 
     // TODO: empirically find these
     public static double TILT_TICKS_PER_DEGREE = 0;
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
     public static double MIN_POWER = 0.5;
+    public static double kG = 0.1;
     /**
      * Max ticks per second when slide is stalled.
      */
@@ -42,21 +44,25 @@ public class Arm {
 
     public Arm(HardwareMap hmap) {
 
-        this.slideMotor = new CachingMotor(hmap, "slides0");
+        this.slideMotor0 = new CachingMotor(hmap, "slides0");
+        this.slideMotor1 = new CachingMotor(hmap, "slides1");
         this.tiltMotor = new CachingMotor(hmap, "tilt");
-        slideMotor.setRunMode(Motor.RunMode.RawPower);
+        slideMotor1.setRunMode(Motor.RunMode.RawPower);
+        slideMotor0.setRunMode(Motor.RunMode.RawPower);
         tiltMotor.setRunMode(Motor.RunMode.RawPower);
 
     }
 
     public void reset() {
-        slideMotor.resetEncoder();
+        slideMotor0.resetEncoder();
+        slideMotor1.resetEncoder();
         tiltMotor.resetEncoder();
     }
 
     public void moveSlides(double power) {
         this.lastPower = power;
-        slideMotor.set(power);
+        slideMotor0.set(power);
+        slideMotor1.set(power);
     }
 
     /**
@@ -64,7 +70,7 @@ public class Arm {
      */
     public void update(long nanos) {
         double lastPos = slidePos;
-        this.slidePos = slideMotor.getCurrentPosition();
+        this.slidePos = slideMotor0.getCurrentPosition();
         this.tiltPos = tiltMotor.getCurrentPosition();
         this.slideVelocity = (slidePos-lastPos)/(nanos/0.000000001);
     }
@@ -123,6 +129,10 @@ public class Arm {
         } else {
             return false;
         }
+    }
+
+    public void holdPosition() {
+        moveSlides(kG * Math.abs(Math.cos(tiltPos / TILT_TICKS_PER_DEGREE)));
     }
 
     public int getPosition() {
