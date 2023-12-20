@@ -3,9 +3,10 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
-import org.firstinspires.ftc.teamcode.controllers.IQIDController;
+import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 
 @Config
 public class Arm {
@@ -18,14 +19,15 @@ public class Arm {
     public static double TILT_TICKS_PER_DEGREE = 0;
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
     public static double MIN_POWER = 0.5;
-    public static double kG = 0.1;
+    public static double slidekG = 0.1;
+    public static double tiltkG = 0.1;
     /**
      * Max ticks per second when slide is stalled.
      */
     public static double STALL_VELOCITY = 5;
 
-    private IQIDController slideIQID;
-    private IQIDController tiltIQID;
+    private SquIDController slideIQID;
+    private SquIDController tiltIQID;
 
     private int slidePos = 0;
     private int tiltPos = 0;
@@ -37,7 +39,7 @@ public class Arm {
 
     private double lastPower = 0;
 
-    private double tiltTarget = 0;
+    private int tiltTarget = 0;
     private double slideTarget = 0;
 
 
@@ -59,10 +61,25 @@ public class Arm {
         tiltMotor.resetEncoder();
     }
 
+    public void resetSlides() {
+        slideMotor0.resetEncoder();
+        slideMotor1.resetEncoder();
+    }
+
+    public void resetTilt() {
+        tiltMotor.resetEncoder();
+    }
+
     public void moveSlides(double power) {
+        // validate bounds
+        power = Range.clip(power, -1, 1);
         this.lastPower = power;
         slideMotor0.set(power);
         slideMotor1.set(power);
+    }
+
+    public void moveTilt(double power) {
+        tiltMotor.set(power);
     }
 
     /**
@@ -76,8 +93,8 @@ public class Arm {
     }
 
     public void tiltArm(double degrees) {
-        this.tiltTarget = degrees*TILT_TICKS_PER_DEGREE;
-        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees*TILT_TICKS_PER_DEGREE));
+        this.tiltTarget = (int) (degrees*TILT_TICKS_PER_DEGREE);
+        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees*TILT_TICKS_PER_DEGREE) + tiltkG * Math.abs(Math.cos(degrees)));
     }
 
     /**
@@ -104,7 +121,7 @@ public class Arm {
      */
     public void extend(double target) {
         this.slideTarget = target;
-        moveSlides(slideIQID.calculate(slidePos, target));
+        moveSlides(slideIQID.calculate(slidePos, target) + slidekG * Math.abs(Math.sin(tiltPos / TILT_TICKS_PER_DEGREE)));
     }
 
     /**
@@ -132,15 +149,27 @@ public class Arm {
     }
 
     public void holdPosition() {
-        moveSlides(kG * Math.abs(Math.cos(tiltPos / TILT_TICKS_PER_DEGREE)));
+        moveSlides(slidekG * Math.abs(Math.sin(tiltPos / TILT_TICKS_PER_DEGREE)));
+        tiltArm(tiltkG * Math.abs(Math.cos(tiltPos / TILT_TICKS_PER_DEGREE)));
     }
 
     public int getPosition() {
         return this.slidePos;
     }
 
+    /**
+     * @return In degrees.
+     */
     public double getTilt() {
         return this.tiltPos / TILT_TICKS_PER_DEGREE;
+    }
+
+    public int getTiltTicks() {
+        return this.tiltPos;
+    }
+
+    public int getTiltTargetTicks() {
+        return this.tiltTarget;
     }
 
 }

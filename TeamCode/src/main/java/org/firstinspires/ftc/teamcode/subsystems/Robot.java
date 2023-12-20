@@ -12,13 +12,11 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
-import com.qualcomm.robotcore.hardware.usb.RobotArmingStateNotifier;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.teamcode.R;
-import org.firstinspires.ftc.teamcode.controllers.IQIDController;
+import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 import org.firstinspires.ftc.teamcode.pathutils.Point;
@@ -94,7 +92,7 @@ public abstract class Robot extends LinearOpMode {
     public static double kPosQ = 0.05;
     public static double kPosI = 0;
     public static double kPosD = 0;
-    private IQIDController poscontroller = new IQIDController(kPosQ, kPosI, kPosD);
+    private SquIDController poscontroller = new SquIDController(kPosQ, kPosI, kPosD);
 
     /**
      * Telemetry.
@@ -113,6 +111,8 @@ public abstract class Robot extends LinearOpMode {
     private double lastArmIVKHeight = 0;
     private double lastArmIVKDistance = 0;
     private double intakeTilt = 180;
+    private boolean disableAutoRetract = false;
+    private int flipHeadingLock = 1;
 
 
 
@@ -200,12 +200,17 @@ public abstract class Robot extends LinearOpMode {
                         }
                         bucket.intake();
                         bucket.smartLatch();
+                        if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.7 && gamepad1c.right_trigger < 0.7 && !disableAutoRetract) {
+                            gamepad1.rumble(50);
+                            arm.extend(100);
+                        }
                         fsmIsDone = true;
                 }
 
             case OUTTAKE:
                 switch (outtakeProgress) {
                     case EXTENDED:
+                        bucket.latch();
                         // go to last known arm params
                         // if it doesn't work set to defaults
                         if (!calcArmIVK(getArmDistance(), getArmHeight())) {
@@ -214,10 +219,10 @@ public abstract class Robot extends LinearOpMode {
 
                         // if arm is already in right position don't do anything
                         if (arm.isTilted(1, ArmIVK.getArmAngle())) {
-                            swerve.headingLock(true, headingOffset);
+                            swerve.headingLock(true, Math.PI/2 * flipHeadingLock);
                             outtakeProgress = outtakeStates.TILTED;
                         } else if (arm.getPosition() < 300) {
-                            swerve.headingLock(true, headingOffset);
+                            swerve.headingLock(true, Math.PI/2 * flipHeadingLock);
                             outtakeProgress = outtakeStates.RETRACTED;
                         } else {
                             arm.moveSlides(-1);
@@ -261,6 +266,17 @@ public abstract class Robot extends LinearOpMode {
         this.intakeTilt = tilt;
     }
 
+    public void setAutoLatch(boolean active) {
+        active = !active;
+        this.disableAutoRetract = active;
+        this.bucket.disableAutoLatch = active;
+    }
+
+    public void setAutoRetract(boolean active) {
+        active = !active;
+        this.disableAutoRetract = active;
+    }
+
     public void outtake() {
         this.transferStates = states.OUTTAKE;
         this.outtakeProgress = outtakeStates.EXTENDED;
@@ -289,8 +305,17 @@ public abstract class Robot extends LinearOpMode {
         return  transferStates == states.INTAKE;
     }
 
+    public boolean inAuto() { return transferStates == states.AUTO; }
+
     public boolean isDone() {
         return fsmIsDone;
+    }
+
+    public void flipHeadingLock() {
+        this.flipHeadingLock = -flipHeadingLock;
+        if (swerve.headingLock) {
+            swerve.headingLock(true, -swerve.headingLockAngle);
+        }
     }
 
     /**

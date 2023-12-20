@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
@@ -8,8 +9,8 @@ import org.firstinspires.ftc.teamcode.subsystems.Robot;
 @TeleOp(name="Comp TeleOp")
 public class CompTele extends Robot {
 
-    boolean lastOptions2 = false;
-    boolean lastOptions = false;
+    Gamepad lastgamepad1c = new Gamepad();
+    Gamepad lastgamepad2c = new Gamepad();
 
     @Override
     public void runOpMode() {
@@ -85,15 +86,52 @@ public class CompTele extends Robot {
             }
 
             // overrides
-            if (gamepad2c.options && !lastOptions2) {
-                bucket.disableAutoLatch = true;
+            if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
+                setAutoLatch(false);
             }
-            if (gamepad1c.options && !lastOptions) {
+            if (gamepad2c.right_stick_button && !lastgamepad2c.right_stick_button) {
+                setAutoRetract(false);
+            }
+            if (gamepad2c.options && !lastgamepad2c.options) {
+                setFSMtoAuto();
+            }
+            if (gamepad2c.share && !lastgamepad2c.share) {
+                flipHeadingLock();
+            }
+            if (inAuto()) {
+                if (gamepad2c.left_trigger > 0.7) {
+                    arm.moveSlides(gamepad2c.left_trigger);
+                } else if (gamepad2c.right_trigger > 0.7) {
+                    arm.moveSlides(-gamepad2c.right_trigger);
+                }
+                if (gamepad2c.left_bumper) {
+                    arm.moveTilt(1);
+                } else if (gamepad2c.right_bumper) {
+                    arm.moveTilt(-1);
+                }
+                if (gamepad2c.dpad_left) {
+                    arm.resetSlides();
+                } else if (gamepad2c.dpad_right) {
+                    arm.resetTilt();
+                } else if (gamepad2c.dpad_up) {
+                    arm.reset();
+                }
+                if (gamepad2c.square) {
+                    swerve.setAuton();
+                } else if (gamepad2c.cross) {
+                    swerve.headingLock(true, getHeading());
+                    swerve.headingLock(false, getHeading());
+                }
+            }
+
+
+
+            if (gamepad1c.options && !lastgamepad1c.options) {
                 imu.resetYaw();
             }
 
-            lastOptions2 = gamepad2c.options;
-            lastOptions = gamepad1c.options;
+            lastgamepad1c.copy(gamepad1c);
+            lastgamepad2c.copy(gamepad2c);
         }
     }
 }

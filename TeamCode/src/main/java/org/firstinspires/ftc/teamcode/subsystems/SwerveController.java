@@ -9,7 +9,6 @@ import com.arcrobotics.ftclib.drivebase.RobotDrive;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
-import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -18,7 +17,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
-import org.firstinspires.ftc.teamcode.controllers.IQIDController;
+import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
@@ -66,8 +65,8 @@ public class SwerveController extends RobotDrive {
 
     double lastHeading = 0;
     PIDController headingPID  = new PIDController(0,0,0);
-    IQIDController headingIQID = new IQIDController(0, 0, 0);
-    IQIDController poscontroller = new IQIDController(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
+    SquIDController headingIQID = new SquIDController(0, 0, 0);
+    SquIDController poscontroller = new SquIDController(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
 
     double voltageLimit = 0;
 

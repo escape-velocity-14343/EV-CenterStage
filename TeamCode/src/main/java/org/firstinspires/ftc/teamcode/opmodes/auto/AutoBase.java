@@ -90,6 +90,9 @@ public abstract class AutoBase extends Robot {
         // 99x - failsafe states
     public int state = 0;
 
+    /**
+     * This function encapsulates everything you need to run the opmode. No other functions are necessary.
+     */
     public void run(boolean isRed, boolean isBackstage) {
 
         this.isRed = isRed;
@@ -145,11 +148,12 @@ public abstract class AutoBase extends Robot {
                 goToPoint(new AutonomousWaypoint(12, -29.41, 0));
                 if (atPoint()) {
                     outtake();
+                    setOuttake(49.5, 0);
                     setState(211);
                 }
             } else if (state == 211) {
                 // TODO: emperically tune the arm target
-                arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
+                // arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
                 if (arm.isDone(10)) {
                     bucket.setlatch(false, true);
                     setState(212);
@@ -193,7 +197,7 @@ public abstract class AutoBase extends Robot {
                 }
             } else if (state == 126) {
                 arm.tiltArm(180);
-                bucket.frontIntake();
+                bucket.intake();
                 if (arm.isTilted(1)) {
                     bucket.setlatch(false, true);
                     setState(300);
@@ -204,7 +208,6 @@ public abstract class AutoBase extends Robot {
             else if (state == 120) {
                 goToPoint(new AutonomousWaypoint(12, -35.76, Math.PI / 2)
                         .setAudienceOffset(-24, 0, 0)
-
                         .setBlueHeadingReversed());
                 arm.extend(PURPLE_PIXEL_ARM_EXTENSION_VALUE);
                 if (atPoint() && arm.isDone(10)) {
@@ -221,10 +224,11 @@ public abstract class AutoBase extends Robot {
                 goToPoint(new AutonomousWaypoint(12, -35.41, 0));
                 if (atPoint()) {
                     outtake();
+                    setOuttake(49.5, 0);
                     setState(221);
                 }
             } else if (state == 221) {
-                arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
+                //arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
                 if (arm.isDone(10)) {
                     bucket.unlatch();
                     setState(222);
@@ -233,6 +237,21 @@ public abstract class AutoBase extends Robot {
             } else if (state == 222) {
                 if (timer.seconds() > YELLOW_PIXEL_DROP_TIME) {
                     setState(350);
+                }
+            } // audience start yellow case
+            else if (state == 225) {
+                goToPoint(new AutonomousWaypoint(38, -12, 0, true));
+                if (atPoint()) {
+                    setState(226);
+                }
+            }
+            else if (state == 226) {
+                goToPoint(new AutonomousWaypoint(38, -35.41, 0));
+                if (atPoint()) {
+                    outtake();
+                    setOuttake(23.5, 0);
+                    // transition to wait and move to backdrop score state
+                    setState(222);
                 }
             }
 
@@ -258,10 +277,11 @@ public abstract class AutoBase extends Robot {
                 goToPoint(new AutonomousWaypoint(12, -41.41, 0));
                 if (atPoint()) {
                     outtake();
+                    setOuttake(49.5, 0);
                     setState(231);
                 }
             } else if (state == 231) {
-                arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
+                //arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
                 if (arm.isDone(10)) {
                     bucket.unlatch();
                     setState(232);
@@ -295,6 +315,7 @@ public abstract class AutoBase extends Robot {
 
             // go to normal cycle position
             else if (state == 350) {
+                foldArm();
                 goToPoint(new AutonomousWaypoint(8, -36, 0));
                 if (atPoint()) {
                     intake();
@@ -348,7 +369,7 @@ public abstract class AutoBase extends Robot {
                     setState(512);
                 }
             } else if (state == 512) {
-                // prevent further arm movement to ensure there is no pressure on the stack
+                // prevent further arm movement to ensure there is no pressure on the stack during outtake
                 setFSMtoAuto();
                 arm.holdPosition();
                 bucket.dropFromStack();
@@ -389,6 +410,12 @@ public abstract class AutoBase extends Robot {
                 Log.println(Log.WARN, "AUTO", "Reached undefined state " + state + ". Stopping OpMode.");
                 requestOpModeStop();
             }
+
+            // if we are stalled emergency stop
+            if (swerveIsStalled()) {
+                setState(999);
+            }
+
         }
 
 
