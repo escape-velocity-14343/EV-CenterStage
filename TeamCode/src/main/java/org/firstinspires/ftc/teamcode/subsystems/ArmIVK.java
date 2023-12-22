@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import android.util.Log;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.util.Range;
 
@@ -12,10 +13,12 @@ public class ArmIVK {
     public static double TICKS_PER_INCH = 0;
     public static double BACKDROP_OFFSET_INCHES = 0.1;
     public static double BUCKET_OFFSET_INCHES = 3.93700787;
-    public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(80);
+    public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
+    public static double BUCKET_LENGTH_INCHES = 5;
     public static double MAX_BUCKET_TILT_RADIANS = Math.toRadians(180);
-    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = Math.toRadians(90);
+    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = Math.toRadians(-90);
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
+    public static double ARM_START_OFFSET_INCHES = 5;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
@@ -27,53 +30,51 @@ public class ArmIVK {
     /**
      * @return Whether the given parameters are within the possible mechanical ranges.
      */
-    public static boolean calcIVK(double distance, double height) {
-        // (0, 0) is the base of the backdrop, (0, d) is the robot position
-        Vector2d slideTopPoint = new Vector2d(height/-Math.sqrt(3), height);
-        // offset off of the backdrop by using perpendicular lines
-        slideTopPoint = slideTopPoint.plus(new Vector2d(Math.cos(Math.toRadians(30))*BACKDROP_OFFSET_INCHES,
-                Math.sin(Math.toRadians(30))*BACKDROP_OFFSET_INCHES));
-        // offset by the bucket offset
-        double bucketOffsetAngle = Math.toRadians(120) - BUCKET_OFFSET_TO_BUCKET_RADIANS;
-        slideTopPoint = slideTopPoint.plus(new Vector2d(Math.cos(bucketOffsetAngle)*BUCKET_OFFSET_INCHES,
-                Math.sin(bucketOffsetAngle)*BUCKET_OFFSET_INCHES));
-        // we now have the highest point on the slide
+    // TODO: suspect this math is wrong because backdrop should be 60 degrees not 120 or maybe vice versa
+    public static boolean calcBackdropIVK(double distance, double height) {
+        Vector2d backdropSpot = new Vector2d(distance, height);
+        backdropSpot = backdropSpot.plus(new Vector2d(BACKDROP_OFFSET_INCHES*Math.cos(Math.toRadians(150)), BACKDROP_OFFSET_INCHES*Math.sin(Math.toRadians(150))));
+        return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(60));
+    }
 
-        Vector2d slideVector = new Vector2d(slideTopPoint.getY(), slideTopPoint.getX()-distance);
-
-        double slideExtensionInches = slideVector.magnitude();
-        int newSlideExtension = (int) (slideExtensionInches * TICKS_PER_INCH);
-        // if the new slide extension is outside of the slide range return false
-        if (slideExtensionInches > MAX_ARM_EXTENSION_INCHES) {
+    /**
+     * @param distance In Inches.
+     * @param height In Inches.
+     * @param bucketAngle In Radians.
+     */
+    public static boolean calcIVK(double distance, double height, double bucketAngle) {
+        // robot is at (0, 0)
+        // midpoint of the bucket is (d, h)
+        Vector2d bucketPos = new Vector2d(distance, height);
+        // offset to start of bucket offset
+        bucketPos = bucketPos.plus(new Vector2d(BUCKET_LENGTH_INCHES*Math.cos(Math.PI+bucketAngle), BUCKET_LENGTH_INCHES*Math.sin(Math.PI+bucketAngle)));
+        // offset by bucket offset angle
+        bucketPos = bucketPos.plus(new Vector2d(BUCKET_OFFSET_INCHES*Math.cos(BUCKET_OFFSET_TO_BUCKET_RADIANS), BUCKET_OFFSET_INCHES*Math.sin(BUCKET_OFFSET_TO_BUCKET_RADIANS)));
+        // we now have the slide end pos
+        // offset by slide start amount
+        bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
+        double newSlideExtension = bucketPos.magnitude();
+        double newArmAngle = bucketPos.angle();
+        double newBucketTilt = (bucketAngle - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS;
+        // safety checks
+        if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum slide extension.");
             return false;
-        }
-
-        // 180 - bucket offset - slide angle by corresponding angles + angle of elevation
-        double offsetToSlideAngle = Math.PI - bucketOffsetAngle - slideVector.angle();
-        double newBucketTilt = (offsetToSlideAngle - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS;
-
-        // if the tilt is out of bounds return false
-        if (newBucketTilt > 1) {
+        } else if (newBucketTilt > 1) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum bucket tilt.");
             return false;
         } else if (newBucketTilt < 0) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded minimum bucket tilt.");
             return false;
-        }
-
-        // this can't really exceed any limits unless its negative
-        double newArmAngle = Math.toDegrees(slideVector.angle());
-        if (newArmAngle < 0 || newArmAngle > Math.PI) {
+        } else if (newArmAngle < 0 || newArmAngle > Math.PI) {
             Log.println(Log.WARN, "Arm IVK", "Calculated arm angle exceeds arm limits.");
             return false;
+        } else {
+            slideExtension = (int) (newSlideExtension * TICKS_PER_INCH);
+            armAngle = Math.toDegrees(newArmAngle);
+            bucketTilt = newBucketTilt;
+            return true;
         }
-
-        // if all checks have been passed, update the values and return true
-        slideExtension = newSlideExtension;
-        bucketTilt = newBucketTilt;
-        armAngle = newArmAngle;
-        return true;
 
     }
 
@@ -82,6 +83,16 @@ public class ArmIVK {
      */
     public static double getBucketTilt() {
         return ArmIVK.bucketTilt;
+    }
+
+    /**
+     * @param armAngle In Radians.
+     * @param desiredBucketTilt In Radians.
+     * @return In servo range (0-1).
+     */
+    public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
+        
+
     }
 
     /**

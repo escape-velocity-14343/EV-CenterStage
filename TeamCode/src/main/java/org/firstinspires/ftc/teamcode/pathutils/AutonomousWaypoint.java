@@ -1,6 +1,12 @@
 package org.firstinspires.ftc.teamcode.pathutils;
 
+import android.util.Log;
+
 import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.arcrobotics.ftclib.geometry.Rotation2d;
+
+import org.checkerframework.checker.units.qual.A;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +45,9 @@ public class AutonomousWaypoint {
 
 
     private boolean blueHeadingIsReversed = false;
+    private boolean turnToPoint = false;
+    private AutonomousWaypoint pointToTurnTo;
+    private double rotationOffset = 0;
 
     /**
      * Offsets for different run positions.
@@ -107,6 +116,26 @@ public class AutonomousWaypoint {
         redBackstagePoint = new Point(x, y, rot);
         if (imprecise) {
             tolerance = DEFAULT_IMPRECISE_TOLERANCE;
+            headingTolerance = DEFAULT_IMPRECISE_HEADING_TOLERANCE;
+        }
+    }
+
+    /**
+     * Rotate towards a given point. Please do not make that point reference another point for your own sanity. The rotation of that point does not matter and will not be used.
+     */
+    public AutonomousWaypoint(double x, double y, AutonomousWaypoint point) {
+        turnToPoint = true;
+        redBackstagePoint = new Point(x, y, 0);
+        pointToTurnTo = point;
+    }
+
+    public AutonomousWaypoint(double x, double y, AutonomousWaypoint point, boolean imprecise) {
+        turnToPoint = true;
+        redBackstagePoint = new Point(x, y, 0);
+        pointToTurnTo = point;
+        if (imprecise) {
+            tolerance = DEFAULT_IMPRECISE_TOLERANCE;
+            headingTolerance = DEFAULT_IMPRECISE_HEADING_TOLERANCE;
         }
     }
 
@@ -147,6 +176,11 @@ public class AutonomousWaypoint {
         return this;
     }
 
+    public AutonomousWaypoint setRotationOffset(double offset) {
+        this.rotationOffset = offset;
+        return this;
+    }
+
 
     /**
      * Does not overwrite other configured offsets for blue audience/backstage.
@@ -157,7 +191,34 @@ public class AutonomousWaypoint {
         return this;
     }
 
+    public Point getPoint(Pose2d robotPose) {
+        if (turnToPoint) {
+            Pose2d point = pointToTurnTo.getPoint(robotPose).toPose2d();
+            double deltax = point.getX() - robotPose.getX();
+            double deltay = point.getY() - robotPose.getY();
+            double angle = Math.atan2(deltay, deltax);
+            redBackstagePoint.heading = AngleUnit.normalizeRadians(angle + rotationOffset);
+            return getPoint();
+        } else {
+            return getPoint();
+        }
+    }
+
+    /**
+     * For convenience. Use with caution.
+     * DO NOT USE THIS METHOD IF YOU ARE TURNING TO A REFERENCE POINT!!!!
+     */
+    @Deprecated
+    // I am very concerned about this function being misused.
     public Point getPoint() {
+
+        if (turnToPoint) {
+            Log.println(Log.ERROR, "AutonomousWaypoint", "YOU CALLED GETPOINT BUT YOU DIDNT PASS IN ROBOT POSE AND THIS IS A TURN TO POINT!! THIS WILL NOT WORK!");
+
+            // failsafe: presume we are at the end point and run the method
+            return getPoint(new Pose2d(redBackstagePoint.x, redBackstagePoint.y, new Rotation2d(0)));
+        }
+
         Point out = new Point(redBackstagePoint.x, redBackstagePoint.y, redBackstagePoint.heading);
         if (!AutonomousWaypoint.isRed) {
             out = out.reverseY();
@@ -183,12 +244,28 @@ public class AutonomousWaypoint {
         return out;
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         AutonomousWaypoint.configAuto(false, false);
         AutonomousWaypoint.setGlobalBlueOffset(-2, 0, 0);
         Point getpoint = new AutonomousWaypoint(1, -1, 1)
                 .setBlueAudienceOffset(-100, -0.5, 0)
                 .getPoint();
         System.out.println("(" + getpoint.x + ", " + getpoint.y + ", " + getpoint.heading + ")");
+    }*/
+
+    /**
+     * Euclidean distance between two AutonomousWaypoints.
+     */
+    public static double distance(AutonomousWaypoint waypoint1, AutonomousWaypoint waypoint2) {
+        // since the rotation doesn't actually matter just pass in blank pose2ds so we dont throw errors
+        return Point.distance(waypoint1.getPoint(new Pose2d()), waypoint2.getPoint(new Pose2d()));
+    }
+
+    /**
+     * Euclidean distance between the robot and an AutonomousWaypoint.
+     */
+    public static double distance(Pose2d robotPose, AutonomousWaypoint waypoint) {
+        // since the rotation doesn't actually matter just pass in blank pose2ds so we dont throw errors
+        return Point.distance(new Point(robotPose.getX(), robotPose.getY(), 0), waypoint.getPoint(new Pose2d()));
     }
 }

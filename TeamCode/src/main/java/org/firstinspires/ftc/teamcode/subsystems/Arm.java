@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
+import org.firstinspires.ftc.teamcode.drivers.AS5600;
 
 @Config
 public class Arm {
@@ -14,10 +15,11 @@ public class Arm {
     private CachingMotor slideMotor1;
     private CachingMotor slideMotor0;
     private CachingMotor tiltMotor;
+    private AS5600 tiltSensor;
 
     // TODO: empirically find these
-    public static double TILT_TICKS_PER_DEGREE = 0;
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
+    public static double COAXIAL_EFFECT_CORRECTION = 0;
     public static double MIN_POWER = 0.5;
     public static double slidekG = 0.1;
     public static double tiltkG = 0.1;
@@ -30,7 +32,8 @@ public class Arm {
     private SquIDController tiltIQID;
 
     private int slidePos = 0;
-    private int tiltPos = 0;
+    private int coaxialCorrection = 0;
+    private double tiltPos = 0;
 
     /**
      * Ticks per second.
@@ -39,8 +42,10 @@ public class Arm {
 
     private double lastPower = 0;
 
-    private int tiltTarget = 0;
+    private double tiltTarget = 0;
     private double slideTarget = 0;
+
+    private boolean hasMoved = false;
 
 
 
@@ -49,6 +54,7 @@ public class Arm {
         this.slideMotor0 = new CachingMotor(hmap, "slides0");
         this.slideMotor1 = new CachingMotor(hmap, "slides1");
         this.tiltMotor = new CachingMotor(hmap, "tilt");
+        this.tiltSensor = new AS5600(hmap, "tiltSensor");
         slideMotor1.setRunMode(Motor.RunMode.RawPower);
         slideMotor0.setRunMode(Motor.RunMode.RawPower);
         tiltMotor.setRunMode(Motor.RunMode.RawPower);
@@ -58,7 +64,7 @@ public class Arm {
     public void reset() {
         slideMotor0.resetEncoder();
         slideMotor1.resetEncoder();
-        tiltMotor.resetEncoder();
+        //tiltMotor.resetEncoder();
     }
 
     public void resetSlides() {
@@ -66,8 +72,12 @@ public class Arm {
         slideMotor1.resetEncoder();
     }
 
+    @Deprecated
+    /**
+     * This function is useless because we use an absolute encoder.
+     */
     public void resetTilt() {
-        tiltMotor.resetEncoder();
+        //tiltMotor.resetEncoder();
     }
 
     public void moveSlides(double power) {
@@ -76,10 +86,12 @@ public class Arm {
         this.lastPower = power;
         slideMotor0.set(power);
         slideMotor1.set(power);
+        this.hasMoved = true;
     }
 
     public void moveTilt(double power) {
         tiltMotor.set(power);
+        this.hasMoved = true;
     }
 
     /**
@@ -87,21 +99,24 @@ public class Arm {
      */
     public void update(long nanos) {
         double lastPos = slidePos;
-        this.slidePos = slideMotor0.getCurrentPosition();
-        this.tiltPos = tiltMotor.getCurrentPosition();
+        this.slidePos = slideMotor0.getCurrentPosition() - coaxialCorrection;
+        this.tiltPos = tiltSensor.getDegrees();
+        this.coaxialCorrection = (int) (this.tiltPos * COAXIAL_EFFECT_CORRECTION);
         this.slideVelocity = (slidePos-lastPos)/(nanos/0.000000001);
+        this.hasMoved = false;
     }
 
     public void tiltArm(double degrees) {
-        this.tiltTarget = (int) (degrees*TILT_TICKS_PER_DEGREE);
-        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees*TILT_TICKS_PER_DEGREE) + tiltkG * Math.abs(Math.cos(degrees)));
+        this.tiltTarget = degrees;
+        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees) + tiltkG * Math.abs(Math.cos(degrees)));
+        this.hasMoved = true;
     }
 
     /**
      * @param tolerance In degrees.
      */
     public boolean isTilted(double tolerance) {
-        if (Math.abs(tiltTarget-tiltPos) > tolerance*TILT_TICKS_PER_DEGREE) {
+        if (Math.abs(tiltTarget-tiltPos) > tolerance) {
             return false;
         } else return true;
     }
@@ -110,7 +125,7 @@ public class Arm {
      * @param tolerance In degrees.
      */
     public boolean isTilted(double tolerance, double degrees) {
-        if (Math.abs(degrees-tiltPos) > tolerance*TILT_TICKS_PER_DEGREE) {
+        if (Math.abs(degrees-tiltPos) > tolerance) {
             return false;
         } else return true;
     }
@@ -120,8 +135,17 @@ public class Arm {
      * @param target Location to PID to in ticks.
      */
     public void extend(double target) {
+        target = Range.clip(target, 0, SLIDES_MAX_EXTENSION_VALUE);
         this.slideTarget = target;
-        moveSlides(slideIQID.calculate(slidePos, target) + slidekG * Math.abs(Math.sin(tiltPos / TILT_TICKS_PER_DEGREE)));
+        moveSlides(slideIQID.calculate(slidePos, target) + slidekG * Math.abs(Math.sin(tiltPos)));
+    }
+
+    /**
+     * Function for convenience. Uses arm.extend() and the ArmIVK conversion value.
+     * @param target Location to PId to in inches.
+     */
+    public void extendInches(double target) {
+        this.extend((int) (target * ArmIVK.TICKS_PER_INCH));
     }
 
     /**
@@ -148,9 +172,14 @@ public class Arm {
         }
     }
 
+    /**
+     * Hold the position of the arm. This function will automatically be overwritten by other movement calls.
+     */
     public void holdPosition() {
-        moveSlides(slidekG * Math.abs(Math.sin(tiltPos / TILT_TICKS_PER_DEGREE)));
-        tiltArm(tiltkG * Math.abs(Math.cos(tiltPos / TILT_TICKS_PER_DEGREE)));
+        if (!this.hasMoved) {
+            extend(this.slidePos);
+            tiltArm(this.tiltPos);
+        }
     }
 
     public int getPosition() {
@@ -161,15 +190,7 @@ public class Arm {
      * @return In degrees.
      */
     public double getTilt() {
-        return this.tiltPos / TILT_TICKS_PER_DEGREE;
-    }
-
-    public int getTiltTicks() {
         return this.tiltPos;
-    }
-
-    public int getTiltTargetTicks() {
-        return this.tiltTarget;
     }
 
 }

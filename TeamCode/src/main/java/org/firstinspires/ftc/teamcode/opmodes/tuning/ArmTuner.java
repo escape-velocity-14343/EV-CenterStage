@@ -26,8 +26,6 @@ public class ArmTuner extends Robot {
             telemetry.addData("Arm Target", armExtensionTarget);
             telemetry.addData("Tilt Position", arm.getTilt());
             telemetry.addData("Tilt Target", armTiltTargetDegrees);
-            telemetry.addData("Tilt Ticks", arm.getTiltTicks());
-            telemetry.addData("Tilt Target Ticks", arm.getTiltTargetTicks());
         }
     }
 

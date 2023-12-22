@@ -135,6 +135,8 @@ public abstract class Robot extends LinearOpMode {
         swerve.setInit();
         transferStates = states.INIT;
 
+        calcArmIVK(10, 0);
+
         imu = hardwareMap.get(IMU.class, "imu 1");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
         imu.initialize(parameters);
@@ -245,8 +247,15 @@ public abstract class Robot extends LinearOpMode {
             case FOLDED:
                 bucket.intake();
                 arm.extend(0);
-                arm.tiltArm(0);
+                if (arm.isDone(10)) {
+                    arm.tiltArm(0);
+                }
+                if (arm.isDone(10) && arm.isTilted(1)) {
+                    fsmIsDone = true;
+                }
         }
+        // if nothing else is happening, hold position
+        arm.holdPosition();
 
         telemetry.update();
 
@@ -327,7 +336,7 @@ public abstract class Robot extends LinearOpMode {
         distance = Range.clip(distance, 0, 60);
         lastArmIVKHeight = height;
         lastArmIVKDistance = distance;
-        return ArmIVK.calcIVK(distance, height+3);
+        return ArmIVK.calcBackdropIVK(distance, height+3);
     }
 
     public double getArmHeight() {

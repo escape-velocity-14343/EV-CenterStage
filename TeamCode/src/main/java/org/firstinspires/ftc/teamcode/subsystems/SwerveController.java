@@ -330,7 +330,7 @@ public class SwerveController extends RobotDrive {
     public void driveTo(Pose2d robotPose, AutonomousWaypoint endWaypoint) {
         this.setAuton();
         targetWaypoint = endWaypoint;
-        Pose2d endPose = endWaypoint.getPoint().toPose2d();
+        Pose2d endPose = endWaypoint.getPoint(robotPose).toPose2d();
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
         endPose = endPose.relativeTo(robotPose);
         double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
