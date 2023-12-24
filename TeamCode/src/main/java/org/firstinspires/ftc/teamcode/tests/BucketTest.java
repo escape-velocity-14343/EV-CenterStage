@@ -15,6 +15,7 @@ public class BucketTest extends LinearOpMode {
         boolean isDropping = false;
         waitForStart();
         while (opModeIsActive()) {
+            bucket.tilt(gamepad1.left_stick_y);
             bucket.update();
             if (gamepad1.dpad_left) {
                 bucket.setLeftLatch(false);

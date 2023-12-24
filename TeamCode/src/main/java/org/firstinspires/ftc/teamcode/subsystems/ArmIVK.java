@@ -91,7 +91,7 @@ public class ArmIVK {
      * @return In servo range (0-1).
      */
     public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
-        
+        return bucketTilt;
 
     }
 

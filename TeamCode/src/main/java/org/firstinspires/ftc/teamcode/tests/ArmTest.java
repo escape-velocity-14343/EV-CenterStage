@@ -19,9 +19,7 @@ public class ArmTest extends LinearOpMode {
             }
             if (gamepad1.left_bumper) {
                 arm.moveTilt(1);
-            } else if (gamepad1.right_bumper) {
-                arm.moveTilt(-1);
-            }
+            } else if (gamepad1.right_bumper)        
             if (gamepad1.dpad_up) {
                 arm.holdPosition();
             }
