@@ -162,7 +162,7 @@ public class Arm {
 
     /**
      * Function for convenience. Uses arm.extend() and the ArmIVK conversion value.
-     * @param target Location to PId to in inches.
+     * @param target Location to PID to in inches.
      */
     public void extendInches(double target) {
         this.extend((int) (target * ArmIVK.TICKS_PER_INCH));

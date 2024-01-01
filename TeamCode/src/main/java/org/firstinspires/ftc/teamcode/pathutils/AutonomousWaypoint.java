@@ -129,6 +129,10 @@ public class AutonomousWaypoint {
         pointToTurnTo = point;
     }
 
+    public AutonomousWaypoint(Point p) {
+        this(p.x, p.y, p.heading);
+    }
+
     public AutonomousWaypoint(double x, double y, AutonomousWaypoint point, boolean imprecise) {
         turnToPoint = true;
         redBackstagePoint = new Point(x, y, 0);
