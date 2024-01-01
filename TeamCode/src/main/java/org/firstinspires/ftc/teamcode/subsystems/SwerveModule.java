@@ -100,6 +100,7 @@ public class SwerveModule {
     * @param heading the direction to move the pod in, relative to the robot (in degrees)
     */
     public void podPid(double wheel, double heading) {
+        telemetry.addData("uncorrectedMotorPower"+direction, wheel);
         double rotation = rot.getDegrees();
         telemetry.addData("rawVoltage"+direction, rot.getRawVoltage()*100.0);
 
@@ -124,7 +125,7 @@ public class SwerveModule {
         }*/
         lastRotation = rotation;
         telemetry.addData("encRotation"+direction, rotation);
-        motorRotation = getRotation();
+        motorRotation = AngleUnit.normalizeDegrees(getRotation());
         telemetry.addData("motorRotation"+direction, motorRotation);
         //telemetry.addData("encoderRotation"+direction,rot.getDegrees());
 
@@ -137,14 +138,18 @@ public class SwerveModule {
         //telemetry.addData("rotation"+direction, rotation);
         //telemetry.addData("heading"+direction, heading);
         pid.setSetPoint(moveTo);
-        error = pid.getPositionError();
-        //telemetry.addData("error"+direction, error);
         double pidcalc = pid.calculate(0.0);
+        //error = pid.getPositionError();
+
+        telemetry.addData("error"+direction, error);
+
         //pidcalc = Math.signum(pidcalc) * Math.pow(pidcalc,2.0);
         //telemetry.addData("pidcalc"+direction, pidcalc);
-        podMove(Math.cos(Math.toRadians(error))*wheel, pidcalc);
+        podMove(Math.cos(Math.toRadians(moveTo))*wheel, pidcalc);
+        //podMove(wheel, pidcalc);
     }
     public void podMove(double wheel, double heading) {
+        telemetry.addData("Swerve module power"+direction, wheel);
         if(compare(rot.getDegrees(),lastRotation,1.0))
             noRotCount++;
         else
@@ -164,20 +169,20 @@ public class SwerveModule {
         wheel /= headingwheelratio;
         double topP = wheel-heading;
         double bottomP = wheel+heading;
-        topP = Range.clip(topP, -1,1)/maxPower;
-        bottomP = Range.clip(bottomP, -1, 1)/maxPower;
+        //topP = Range.clip(topP, -1,1)/maxPower;
+        //bottomP = Range.clip(bottomP, -1, 1)/maxPower;
 
 
 
         double [] powers = {topP, bottomP};
-        powers = normalize(powers, 1.0);
+        powers = normalize(powers, maxPower);
         //telemetry.addData("TopP"+direction, topP);
         //telemetry.addData("bottomP"+direction, bottomP);
         top.set(powers[0]);
         bottom.set(-powers[1]);
     }
     public double getRotation() {
-        int topPosition = top.getCurrentPosition();
+        /*int topPosition = top.getCurrentPosition();
         int bottomPosition = bottom.getCurrentPosition();
         if(topPosition == 0 && bottomPosition == 0)
                 noMotorRotCount++;
@@ -193,7 +198,8 @@ public class SwerveModule {
         //motorRotation = AngleUnit.normalizeDegrees(motorRotation) ;
         top.resetEncoder();
         bottom.resetEncoder();
-        return motorRotation;
+        return motorRotation;*/
+        return (rot.getDegrees()+offset)%360;
     }
 
     public double[] normalize(double[] values, double magnitude) {

@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
+import com.arcrobotics.ftclib.util.InterpLUT;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
 
@@ -19,17 +20,24 @@ public class Arm {
 
     // TODO: empirically find these
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
-    public static double COAXIAL_EFFECT_CORRECTION = 0;
+    public static double COAXIAL_EFFECT_CORRECTION = 0.504;
     public static double MIN_POWER = 0.5;
     public static double slidekG = 0.1;
     public static double tiltkG = 0.1;
+    public static boolean useGainSchedule = false;
+    private InterpLUT slidekS = new InterpLUT();
+
+    public static double tiltP  = 0.02;
+
+    public static double slideP = 0.0005;
     /**
+     *
      * Max ticks per second when slide is stalled.
      */
     public static double STALL_VELOCITY = 5;
 
-    private SquIDController slideIQID;
-    private SquIDController tiltIQID;
+    private SquIDController slideIQID = new SquIDController(slideP,0,0);
+    private SquIDController tiltIQID = new SquIDController(tiltP,0,0);
 
     private int slidePos = 0;
     private int coaxialCorrection = 0;
@@ -56,20 +64,25 @@ public class Arm {
         this.tiltMotor = new CachingMotor(hmap, "tilt");
         this.tiltSensor = new AS5600(hmap, "tiltSensor");
         slideMotor1.setRunMode(Motor.RunMode.RawPower);
+        slideMotor1.setInverted(true);
+        slideMotor0.setInverted(true);
         slideMotor0.setRunMode(Motor.RunMode.RawPower);
         tiltMotor.setRunMode(Motor.RunMode.RawPower);
+        slidekS.add(1000, 0.1);
+        slidekS.add(0, 0.3);
+        slidekS.createLUT();
 
     }
 
     public void reset() {
         slideMotor0.resetEncoder();
-        slideMotor1.resetEncoder();
+        //slideMotor1.resetEncoder();
         //tiltMotor.resetEncoder();
     }
 
     public void resetSlides() {
         slideMotor0.resetEncoder();
-        slideMotor1.resetEncoder();
+        //slideMotor1.resetEncoder();
     }
 
     @Deprecated
@@ -98,8 +111,10 @@ public class Arm {
      * Updates the cached encooder values for the arm. Please call this every loop.
      */
     public void update(long nanos) {
+        tiltIQID.setP(tiltP);
+        slideIQID.setP(slideP);
         double lastPos = slidePos;
-        this.slidePos = slideMotor0.getCurrentPosition() - coaxialCorrection;
+        this.slidePos = slideMotor1.getCurrentPosition() - coaxialCorrection;
         this.tiltPos = tiltSensor.getDegrees();
         this.coaxialCorrection = (int) (this.tiltPos * COAXIAL_EFFECT_CORRECTION);
         this.slideVelocity = (slidePos-lastPos)/(nanos/0.000000001);
@@ -108,7 +123,7 @@ public class Arm {
 
     public void tiltArm(double degrees) {
         this.tiltTarget = degrees;
-        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees) + tiltkG * Math.abs(Math.cos(degrees)));
+        tiltMotor.set(tiltIQID.calculate(tiltPos, degrees) + tiltkG * Math.cos(Math.toRadians(degrees)));
         this.hasMoved = true;
     }
 
@@ -137,7 +152,12 @@ public class Arm {
     public void extend(double target) {
         target = Range.clip(target, 0, SLIDES_MAX_EXTENSION_VALUE);
         this.slideTarget = target;
-        moveSlides(slideIQID.calculate(slidePos, target) + slidekG * Math.abs(Math.sin(tiltPos)));
+        double power = slideIQID.calculate(slidePos, target);
+        double ff = slidekG;
+        // add kstatic friction term
+        ff += Math.signum(power) * slidekS.get(slidePos);
+        ff *= Math.abs(Math.sin(Math.toRadians(tiltPos)));
+        moveSlides( power + ff);
     }
 
     /**
@@ -177,8 +197,8 @@ public class Arm {
      */
     public void holdPosition() {
         if (!this.hasMoved) {
-            extend(this.slidePos);
-            tiltArm(this.tiltPos);
+            //extend(this.slidePos);
+            //tiltArm(this.tiltPos);
         }
     }
 
@@ -191,6 +211,12 @@ public class Arm {
      */
     public double getTilt() {
         return this.tiltPos;
+    }
+    public void setArmOffset(double offset) {
+        tiltSensor.setOffset(offset);
+    }
+    public void setSensorInverted(boolean invert) {
+        tiltSensor.setInverted(invert);
     }
 
 }

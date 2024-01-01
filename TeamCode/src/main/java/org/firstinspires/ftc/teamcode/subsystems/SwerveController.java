@@ -27,7 +27,7 @@ import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 public class SwerveController extends RobotDrive {
     public static double p = 0.01;
     public static double i = 0.0;
-    public static double d = 0.005;
+    public static double d = 0.00;
 
     public static double teleopHeadingInputGain = -0.07;
 
@@ -51,6 +51,7 @@ public class SwerveController extends RobotDrive {
     double[] powers = {0,0,0,0};
     double headinglim = 1;
     double accellim = 1;
+    public static double lOffset = -45, rOffset = -45;
 
     boolean rotationInput = false;
     enum rotationMode {
@@ -99,11 +100,14 @@ public class SwerveController extends RobotDrive {
         right = new SwerveModule(new CachingMotor(hMap,"bottomright"),new CachingMotor(hMap,"topright"),new AnalogEncoder(hMap,"rightrot"),telemetry);
 
         right.setSide(true);
-        left.setOffset(180); //TODO: fix swerve pod
+        left.setOffset(lOffset); //TODO: fix swerve pod
+        right.setOffset(rOffset);
         this.robot = robot;
         voltageSensor = robot.voltageSensor;
     }
     private void drive(double x, double y, double rot, double botHeading) {
+        left.setOffset(lOffset); //TODO: fix swerve pod
+        right.setOffset(rOffset);
 
 
         // normalize
@@ -136,7 +140,7 @@ public class SwerveController extends RobotDrive {
         rt = Math.atan2(ry,rx);
         lt = Math.toDegrees(lt);
         rt = Math.toDegrees(rt);
-        if (voltageSensor.getVoltage()<voltageLimit) {
+        /*if (voltageSensor.getVoltage()<voltageLimit) {
             left.setMaxPower(voltageLimit-voltageSensor.getVoltage());
             right.setMaxPower(voltageLimit-voltageSensor.getVoltage());
         }
@@ -145,8 +149,12 @@ public class SwerveController extends RobotDrive {
             right.setMaxPower(1);
         }
 
-        if (!compare(Math.abs(x)+Math.abs(y)+Math.abs(rot),0.0,0.001)) {
+         */
+        if (!compare(Math.abs(x)+Math.abs(y), 0, 0.001)) {
             lastMovement = new Rotation2d(x, y);
+        }
+
+        if (!compare(Math.abs(x)+Math.abs(y)+Math.abs(rot),0.0,0.001)) {
             left.podPidXY(lx,ly);
             right.podPidXY(rx,ry);
         }
@@ -185,7 +193,8 @@ public class SwerveController extends RobotDrive {
     }
     public void driveFieldCentric(double x, double y, double rot) {
 
-        double botHeading = robot.getHeading();
+        // TODO: fix botHeading orientation LOL
+        double botHeading = -robot.getHeading();
 
         telemetry.addData("heading",Math.toDegrees(botHeading));
         double speed = Math.abs(x)+Math.abs(y);
@@ -379,5 +388,8 @@ public class SwerveController extends RobotDrive {
 
     public boolean isMoving() {
         return (this.isMoving && moveTimer.nanoseconds() > MINIMUM_START_MOVEMENT_NANOS);
+    }
+    public double[] getRotations() {
+        return new double[] {left.getRotation(),right.getRotation()};
     }
 }

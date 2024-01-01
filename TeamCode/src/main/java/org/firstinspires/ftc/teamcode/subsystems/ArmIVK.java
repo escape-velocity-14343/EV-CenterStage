@@ -55,7 +55,7 @@ public class ArmIVK {
         bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
         double newSlideExtension = bucketPos.magnitude();
         double newArmAngle = bucketPos.angle();
-        double newBucketTilt = (bucketAngle - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS;
+        double newBucketTilt = (armAngle + bucketAngle - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS;
         // safety checks
         if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum slide extension.");
@@ -91,7 +91,9 @@ public class ArmIVK {
      * @return In servo range (0-1).
      */
     public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
-        return bucketTilt;
+
+        return Range.clip((armAngle + desiredBucketTilt - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
+
 
     }
 

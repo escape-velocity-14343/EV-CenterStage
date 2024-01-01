@@ -19,13 +19,13 @@ public class ArmTuner extends Robot {
         waitForStart();
         setFSMtoAuto();
         while (opModeIsActive()) {
-            update();
             arm.extend(armExtensionTarget);
             arm.tiltArm(armTiltTargetDegrees);
             telemetry.addData("Arm Position", arm.getPosition());
             telemetry.addData("Arm Target", armExtensionTarget);
             telemetry.addData("Tilt Position", arm.getTilt());
             telemetry.addData("Tilt Target", armTiltTargetDegrees);
+            update();
         }
     }
 

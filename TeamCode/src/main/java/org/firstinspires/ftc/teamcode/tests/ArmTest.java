@@ -12,14 +12,19 @@ public class ArmTest extends LinearOpMode {
         Arm arm = new Arm(hardwareMap);
         waitForStart();
         while (opModeIsActive()) {
-            if (gamepad1.left_trigger > 0.7) {
+            if (gamepad1.left_trigger > 0.1) {
                 arm.moveSlides(gamepad1.left_trigger);
-            } else if (gamepad1.right_trigger > 0.7) {
+            } else if (gamepad1.right_trigger > 0.1) {
                 arm.moveSlides(-gamepad1.right_trigger);
+            } else {
+                arm.moveSlides(0);
             }
-            if (gamepad1.left_bumper) {
-                arm.moveTilt(1);
-            } else if (gamepad1.right_bumper)        
+
+            if (Math.abs(gamepad1.right_stick_x) > 0.1) {
+                arm.moveTilt(gamepad1.right_stick_x);
+            } else {
+                arm.moveTilt(0);
+            }
             if (gamepad1.dpad_up) {
                 arm.holdPosition();
             }

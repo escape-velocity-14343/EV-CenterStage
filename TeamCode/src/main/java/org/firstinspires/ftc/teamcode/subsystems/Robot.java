@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import android.util.Log;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -17,6 +19,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
+import org.firstinspires.ftc.teamcode.drivers.DashboardPacketTelemetry;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 import org.firstinspires.ftc.teamcode.pathutils.Point;
@@ -85,7 +88,7 @@ public abstract class Robot extends LinearOpMode {
     /**
      * PID Config.
      */
-    public static double kHeadingP = 0.05;
+    public static double kHeadingP = 0.002;
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
 
@@ -110,7 +113,7 @@ public abstract class Robot extends LinearOpMode {
      */
     private double lastArmIVKHeight = 0;
     private double lastArmIVKDistance = 0;
-    private double intakeTilt = 180;
+    private double intakeTilt = 0;
     private boolean disableAutoRetract = false;
     private int flipHeadingLock = 1;
 
@@ -124,10 +127,13 @@ public abstract class Robot extends LinearOpMode {
         for (LynxModule hub : allHubs) {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
-
-        telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
+        voltageSensor = hardwareMap.voltageSensor.iterator().next();
+        //DashboardPacketTelemetry fieldtelem = new DashboardPacketTelemetry();
+       // telemetry = new MultipleTelemetry(fieldtelem, telemetry);
+        //telemetry = FtcDashboard.getInstance().getTelemetry();
         toggleableTelemetry = new ToggleTelemetry(telemetry);
         arm = new Arm(hardwareMap);
+        arm.setArmOffset(47);
         bucket = new Bucket(hardwareMap);
         swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
         odometry = new Odometry(hardwareMap, toggleableTelemetry);
@@ -138,22 +144,32 @@ public abstract class Robot extends LinearOpMode {
         calcArmIVK(10, 0);
 
         imu = hardwareMap.get(IMU.class, "imu 1");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
         imu.initialize(parameters);
 
-        voltageSensor = hardwareMap.voltageSensor.iterator().next();
+
+    }
+
+    public void readIMU() {
+        imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
 
     public void setPoseEstimate(Pose2d pose) {
-        odometry.reset(pose.getX(), pose.getY());
-        headingOffset = pose.getRotation().getRadians()-botHeading;
+        if (opModeInInit()) {
+            readIMU();
+        }
+        Log.println(Log.INFO, "heading", "imu reading: " + imuReading);
+        headingOffset = pose.getRotation().getRadians()-imuReading;
+        odometry.reset(pose.getX(), pose.getY(), getHeading());
+
     }
 
     /**
      * USE THIS FUNCTION WHENEVER YOU WANT TO GET A BOT HEADING OR USE BOTHEADING. DO NOT USE THE IMU.
      */
     public double getHeading() {
-        return botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
+        botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
+        return botHeading;
     }
 
     public void update() {
@@ -163,6 +179,9 @@ public abstract class Robot extends LinearOpMode {
         gamepad1c.copy(gamepad1);
         gamepad2c.copy(gamepad2);
         imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        telemetry.addData("imu reading", imuReading);
+        telemetry.addData("heading offset", headingOffset);
+        telemetry.addData("voltage", voltageSensor.getVoltage());
         botHeading = getHeading();
 
         loopNanos = timer.nanoseconds() - lastLoopNanos;
@@ -240,10 +259,10 @@ public abstract class Robot extends LinearOpMode {
                         break;
                     case TILTED:
                         goToArmIVK();
-                        fsmIsDone = true;
+                        fsmIsDone = true; break;
                 }
             case INIT:
-                bucket.intake();
+                bucket.intake(); break;
             case FOLDED:
                 bucket.intake();
                 arm.extend(0);
@@ -253,6 +272,7 @@ public abstract class Robot extends LinearOpMode {
                 if (arm.isDone(10) && arm.isTilted(1)) {
                     fsmIsDone = true;
                 }
+                break;
         }
         // if nothing else is happening, hold position
         arm.holdPosition();
