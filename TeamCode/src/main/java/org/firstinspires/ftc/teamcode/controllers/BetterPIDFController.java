@@ -33,7 +33,10 @@ public class BetterPIDFController {
 
     private double lastTimeStamp;
     private double period;
+
     private double integralDecayFactor = 1;
+    private double integralMaximumError = Double.POSITIVE_INFINITY;
+    private boolean resetIntegralOnSetPointChange = false;
     
 
     /**
@@ -112,6 +115,9 @@ public class BetterPIDFController {
      * @param sp The desired setpoint.
      */
     public void setSetPoint(double sp) {
+        if (sp != setPoint && resetIntegralOnSetPointChange) {
+            clearTotalError();
+        }
         setPoint = sp;
         errorVal_p = setPoint - measuredValue;
         errorVal_v = (errorVal_p - prevErrorVal) / period;
@@ -211,11 +217,29 @@ public class BetterPIDFController {
         if total error is the integral from 0 to t of e(t')dt', and
         e(t) = sp - pv, then the total error, E(t), equals sp*t - pv*t.
          */
-        totalError += period * (setPoint - measuredValue);
+
+        // apply sum only if within maximum error to prevent windup
+        if (errorVal_p < integralMaximumError) {
+            totalError += period * (setPoint - measuredValue);
+        }
+
+        // decay by an exponential factor
+        totalError *= Math.pow(integralDecayFactor, period);
+
+        // bound integration sum
         totalError = totalError < minIntegral ? minIntegral : Math.min(maxIntegral, totalError);
+
+
 
         // returns u(t)
         return kP * errorVal_p + kI * totalError + kD * errorVal_v + kF * setPoint;
+    }
+
+    /**
+     * Calculate based on error, effectively calculates a PIDF with process variable of error and setpoint of 0.
+     */
+    public double calculateWithError(double error) {
+        return this.calculate(error, 0);
     }
 
     public void setPIDF(double kp, double ki, double kd, double kf) {
@@ -233,6 +257,35 @@ public class BetterPIDFController {
     // used to clear kI gains
     public void clearTotalError() {
         totalError = 0;
+    }
+
+    /**
+     * If true, will automatically clear the integral sum on a change in set point.
+     */
+    public void autoClearTotalError(boolean clear) {
+        resetIntegralOnSetPointChange = clear;
+    }
+
+    /**
+     * Sets the integral decay factor, which works as follows:
+     * corrected error = actual error * decay factor ^ t, where t is seconds elapsed.
+     * This will be applied before integration bounds.
+     *
+     * @param factor The decay factor.
+     */
+    public void setIntegralDecayFactor(double factor) {
+        integralDecayFactor = factor;
+    }
+
+    /**
+     * Sets the maximum error at which the integral sum will be increased, to combat integral windup.
+     * Set this to a negative number to allow any value to increase the integral sum.
+     *
+     * @param error The maximum error at which the integral sum will be incremented.
+     */
+    public void setMaximumIntegrationError(double error) {
+        if (error < 0) error = Double.POSITIVE_INFINITY;
+        integralMaximumError = error;
     }
 
     public void setP(double kp) {
