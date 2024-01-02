@@ -15,6 +15,8 @@ public class SwerveTest extends Robot {
     public static boolean drive = true;
     public static double leftTarget = 0;
     public static double rightTarget = 0;
+    public static boolean pid = false;
+    public static double targetDegrees = 0;
     int cycles = 0;
 
     @Override
@@ -33,8 +35,14 @@ public class SwerveTest extends Robot {
                 telemetry.addData("left target", leftTarget);
                 telemetry.addData("right target", rightTarget);
             }
+            if (pid) {
+                swerve.headingLock(true, Math.toRadians(targetDegrees));
+            } else {
+                swerve.setAuton();
+            }
             telemetry.addData("left rotation",swerve.getRotations()[0]);
             telemetry.addData("right rotation", swerve.getRotations()[1]);
+            telemetry.addData("heading target", targetDegrees);
             cycles++;
             telemetry.addData("hz", cycles/timer.seconds());
         }

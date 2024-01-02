@@ -43,6 +43,7 @@ public class SwerveController extends RobotDrive {
     public static double kTop = 1;
     public static double kBottom = -1;
     public static boolean optimize = true;
+    public static double lastVelocityMultiplier = 0.2;
     double lt,rt;
     double jx;
     double jy;
@@ -174,7 +175,7 @@ public class SwerveController extends RobotDrive {
      * @param angle In radians.
      */
     public void polarDriveFieldCentric(double angle, double power, double rot) {
-        this.driveFieldCentric(Math.cos(angle)*power, Math.sin(angle)*power, rot);
+        this.driveFieldCentric(-Math.sin(angle)*power, -Math.cos(angle)*power, rot);
     }
 
 
@@ -194,7 +195,7 @@ public class SwerveController extends RobotDrive {
     public void driveFieldCentric(double x, double y, double rot) {
 
         // TODO: fix botHeading orientation LOL
-        double botHeading = -robot.getHeading();
+        double botHeading = AngleUnit.normalizeRadians(-robot.getHeading());
 
         telemetry.addData("heading",Math.toDegrees(botHeading));
         double speed = Math.abs(x)+Math.abs(y);
@@ -203,7 +204,7 @@ public class SwerveController extends RobotDrive {
             p/=4;
         }
         headingIQID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
-        headingIQID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
+        headingIQID.setSetPoint(AngleUnit.normalizeRadians(headingLockAngle));
 
         switch (rotMode) {
             case HEADING_LOCK:
@@ -213,7 +214,7 @@ public class SwerveController extends RobotDrive {
                 if (!runIQID) {
                     rot = -headingPID.calculate(0);
                 } else {
-                    rot = -headingIQID.calculate(0);
+                    rot = -headingIQID.calculateSQRT(botHeading);
                 }
                 telemetry.addData("rot", rot);
                 break;
@@ -229,7 +230,7 @@ public class SwerveController extends RobotDrive {
                 if (!runIQID) {
                     rot = -headingPID.calculate(0);
                 } else {
-                    rot = -headingIQID.calculate(0);
+                    rot = -headingIQID.calculateSQRT(botHeading);
                 }
                 telemetry.addData("rot", rot);
                 break;
@@ -336,14 +337,16 @@ public class SwerveController extends RobotDrive {
     }
 
     private AutonomousWaypoint targetWaypoint;
-    public void driveTo(Pose2d robotPose, AutonomousWaypoint endWaypoint) {
+    public void driveTo(Pose2d robotPose, Pose2d robotVelocity, AutonomousWaypoint endWaypoint, Odometry odometry) {
+        // move robot by last velocity * multiplier
+        robotPose = new Pose2d(robotPose.getX() + robotVelocity.getX() * lastVelocityMultiplier, robotPose.getY() + robotVelocity.getY() * lastVelocityMultiplier, new Rotation2d(robotPose.getRotation().getRadians() + robotVelocity.getRotation().getRadians() * lastVelocityMultiplier));
         this.setAuton();
         targetWaypoint = endWaypoint;
         Pose2d endPose = endWaypoint.getPoint(robotPose).toPose2d();
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
         endPose = endPose.relativeTo(robotPose);
         double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
-        double arg = Math.atan2(endPose.getY(), endPose.getX());
+        double arg = Math.atan2(endPose.getY(), endPose.getX()) + Math.PI/2;
         mag = poscontroller.calculate(mag, 0);
         double rot = endPose.getRotation().getRadians();
         if (runIQID) {
@@ -351,6 +354,7 @@ public class SwerveController extends RobotDrive {
         } else {
             rot = headingPID.calculate(rot, 0);
         }
+        odometry.setTarget(30 * mag * Math.cos(arg), 30 * mag * Math.sin(arg));
         this.polarDriveFieldCentric(arg, mag, rot);
     }
 
@@ -362,7 +366,12 @@ public class SwerveController extends RobotDrive {
      * Caution when using this function! swerve.atPoint() will not work.
      */
     @Deprecated
-    public void driveTo(Pose2d robotPose, Pose2d endPose) {
+    public void driveTo(Pose2d robotPose, Pose2d robotVelocity, Pose2d endPose) {
+        // add last velocity and multiplier to robot pose
+        robotPose = new Pose2d(robotPose.getX() + robotVelocity.getX() * lastVelocityMultiplier, robotPose.getY() + robotVelocity.getY() * lastVelocityMultiplier, new Rotation2d(robotPose.getRotation().getRadians() + robotVelocity.getRotation().getRadians() * lastVelocityMultiplier));
+        telemetry.addData("velocityx", robotVelocity.getX());
+        telemetry.addData("velocityy", robotVelocity.getY());
+        telemetry.addData("angvel", robotVelocity.getRotation().getDegrees());
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
         endPose = endPose.relativeTo(robotPose);
         double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
@@ -370,7 +379,8 @@ public class SwerveController extends RobotDrive {
         mag = poscontroller.calculate(mag, 0);
         double rot = endPose.getRotation().getRadians();
         if (runIQID) {
-            rot = headingIQID.calculate(rot, 0);
+            headingIQID.setSetPoint(0);
+            rot = headingIQID.calculateSQRT(rot);
         } else {
             rot = headingPID.calculate(rot, 0);
         }

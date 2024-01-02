@@ -15,7 +15,7 @@ public class BucketTest extends LinearOpMode {
         boolean isDropping = false;
         waitForStart();
         while (opModeIsActive()) {
-            bucket.tilt(gamepad1.left_stick_y);
+            bucket.tilt((-gamepad1.left_stick_y+1)/2);
             bucket.update();
             if (gamepad1.dpad_left) {
                 bucket.setLeftLatch(false);
@@ -29,6 +29,7 @@ public class BucketTest extends LinearOpMode {
                 bucket.smartLatch();
             }
             telemetry.addData("Number of Pixels", bucket.getNumPixels());
+            telemetry.addData("bucket tilt", (-gamepad1.left_stick_y+1)/2);
             telemetry.update();
         }
     }

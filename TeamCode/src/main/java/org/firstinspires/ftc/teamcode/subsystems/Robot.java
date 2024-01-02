@@ -88,11 +88,11 @@ public abstract class Robot extends LinearOpMode {
     /**
      * PID Config.
      */
-    public static double kHeadingP = 0.002;
+    public static double kHeadingP = 0.05;
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
 
-    public static double kPosQ = 0.05;
+    public static double kPosQ = 0.01;
     public static double kPosI = 0;
     public static double kPosD = 0;
     private SquIDController poscontroller = new SquIDController(kPosQ, kPosI, kPosD);
@@ -101,6 +101,7 @@ public abstract class Robot extends LinearOpMode {
      * Telemetry.
      */
     ToggleTelemetry toggleableTelemetry;
+    public static boolean useDashTelemetry = true;
 
     /**
      * Control Config.
@@ -131,6 +132,9 @@ public abstract class Robot extends LinearOpMode {
         //DashboardPacketTelemetry fieldtelem = new DashboardPacketTelemetry();
        // telemetry = new MultipleTelemetry(fieldtelem, telemetry);
         //telemetry = FtcDashboard.getInstance().getTelemetry();
+        if (useDashTelemetry) {
+            telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
+        }
         toggleableTelemetry = new ToggleTelemetry(telemetry);
         arm = new Arm(hardwareMap);
         arm.setArmOffset(47);
@@ -379,7 +383,7 @@ public abstract class Robot extends LinearOpMode {
 
     @Deprecated
     public void goToPoint(double x, double y, double rot) {
-        swerve.driveTo(odometry.getPose(), new Pose2d(x, y, new Rotation2d(rot)));
+        swerve.driveTo(odometry.getPose(), odometry.getVelocityPose(), new Pose2d(x, y, new Rotation2d(rot)));
     }
 
     @Deprecated
@@ -430,7 +434,7 @@ public abstract class Robot extends LinearOpMode {
      */
 
     public void goToPoint(AutonomousWaypoint endwaypoint) {
-        swerve.driveTo(odometry.getPose(), endwaypoint);
+        swerve.driveTo(odometry.getPose(), odometry.getVelocityPose(), endwaypoint, odometry);
     }
 
     public boolean atPoint() {

@@ -29,12 +29,13 @@ public class Odometry {
 
     // TODO: Empirically tune these
     public static double TICKS_PER_INCH = 936;
-    public static double X_ROTATE = 4.5;
+    public static double X_ROTATE = 3.75;
     public static double Y_ROTATE = 6.11536953336;
     public static boolean reverseX = false;
-    public static boolean reverseY = true;
+    public static boolean reverseY = false;
 
     private long lastLoopNanos = 1;
+    private boolean hasRun = false;
 
 
     public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
@@ -63,6 +64,11 @@ public class Odometry {
 
         heading = botHeading;
         dh = AngleUnit.normalizeRadians(heading-lastHeading) ;
+        // fix inexact angles
+        if (!hasRun) {
+            dh = 0;
+            hasRun = true;
+        }
         dx = (xE.getCurrentPosition()-lastx)/TICKS_PER_INCH-dh*X_ROTATE;
         dy = (-yE.getCurrentPosition()-lasty)/TICKS_PER_INCH-dh*Y_ROTATE;
         if (reverseX) {
@@ -88,8 +94,11 @@ public class Odometry {
         field.strokeLine(x1, y1, x2, y2);
         field.setFill("yellow");
         field.setStroke("yellow");
-        field.fillCircle(targetx, targety, 2);
-        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        //field.fillCircle(targetx, targety, 2);
+        field.strokeLine(x1, y1, x1+targetx, y1+targety);
+        if (!Robot.useDashTelemetry) {
+            FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        }
 
 
         telemetry.addData("xenc", xE.getCurrentPosition());
@@ -155,6 +164,10 @@ public class Odometry {
      */
     public double getVelocity() {
         return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2))/(lastLoopNanos/1e9);
+    }
+
+    public Pose2d getVelocityPose() {
+        return new Pose2d((dx * Math.cos(heading) - dy * Math.sin(heading))/(lastLoopNanos/1e9), (dx * Math.sin(heading) + dy * Math.cos(heading))/(lastLoopNanos/1e9), new Rotation2d(dh/(lastLoopNanos/1e9)));
     }
 
     public int[] getTicks() {

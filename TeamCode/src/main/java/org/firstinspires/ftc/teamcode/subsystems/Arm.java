@@ -68,8 +68,9 @@ public class Arm {
         slideMotor0.setInverted(true);
         slideMotor0.setRunMode(Motor.RunMode.RawPower);
         tiltMotor.setRunMode(Motor.RunMode.RawPower);
-        slidekS.add(1000, 0.1);
         slidekS.add(0, 0.3);
+        slidekS.add(1000, 0.1);
+
         slidekS.createLUT();
 
     }

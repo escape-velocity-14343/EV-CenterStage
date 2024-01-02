@@ -202,27 +202,13 @@ public class AutonomousWaypoint {
             double deltay = point.getY() - robotPose.getY();
             double angle = Math.atan2(deltay, deltax);
             redBackstagePoint.heading = AngleUnit.normalizeRadians(angle + rotationOffset);
-            return getPoint();
+            return rawGetPoint();
         } else {
-            return getPoint();
+            return rawGetPoint();
         }
     }
 
-    /**
-     * For convenience. Use with caution.
-     * DO NOT USE THIS METHOD IF YOU ARE TURNING TO A REFERENCE POINT!!!!
-     */
-    @Deprecated
-    // I am very concerned about this function being misused.
-    public Point getPoint() {
-
-        if (turnToPoint) {
-            Log.println(Log.ERROR, "AutonomousWaypoint", "YOU CALLED GETPOINT BUT YOU DIDNT PASS IN ROBOT POSE AND THIS IS A TURN TO POINT!! THIS WILL NOT WORK!");
-
-            // failsafe: presume we are at the end point and run the method
-            return getPoint(new Pose2d(redBackstagePoint.x, redBackstagePoint.y, new Rotation2d(0)));
-        }
-
+    private Point rawGetPoint() {
         Point out = new Point(redBackstagePoint.x, redBackstagePoint.y, redBackstagePoint.heading);
         if (!AutonomousWaypoint.isRed) {
             out = out.reverseY();
@@ -246,6 +232,26 @@ public class AutonomousWaypoint {
             }
         }
         return out;
+    }
+
+    /**
+     * For convenience. Use with caution.
+     * DO NOT USE THIS METHOD IF YOU ARE TURNING TO A REFERENCE POINT!!!!
+     */
+    @Deprecated
+    // I am very concerned about this function being misused.
+    public Point getPoint() {
+
+        if (turnToPoint) {
+            Log.println(Log.ERROR, "AutonomousWaypoint", "YOU CALLED GETPOINT BUT YOU DIDNT PASS IN ROBOT POSE AND THIS IS A TURN TO POINT!! THIS WILL NOT WORK!");
+
+            // failsafe: presume we are at the end point and run the method
+            return getPoint(new Pose2d(redBackstagePoint.x, redBackstagePoint.y, new Rotation2d(0)));
+        } else {
+            return rawGetPoint();
+        }
+
+
     }
 
     /*public static void main(String[] args) {
