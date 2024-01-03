@@ -14,11 +14,11 @@ public class ArmIVK {
     public static double BACKDROP_OFFSET_INCHES = 0.1;
     public static double BUCKET_OFFSET_INCHES = 3.93700787;
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
-    public static double BUCKET_LENGTH_INCHES = -20;
+    public static double BUCKET_LENGTH_INCHES = 4;
     public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
     public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
-    public static double ARM_START_OFFSET_INCHES = 5;
+    public static double ARM_START_OFFSET_INCHES = -6;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
@@ -33,8 +33,7 @@ public class ArmIVK {
     // TODO: suspect this math is wrong because backdrop should be 60 degrees not 120 or maybe vice versa
     public static boolean calcBackdropIVK(double distance, double height) {
         // account for reversed angles
-        distance = -distance+15;
-        height -= 5;
+        distance = -distance;
         Vector2d backdropSpot = new Vector2d(distance, height);
         backdropSpot = backdropSpot.plus(new Vector2d(BACKDROP_OFFSET_INCHES*Math.cos(Math.toRadians(150)), BACKDROP_OFFSET_INCHES*Math.sin(Math.toRadians(150))));
         return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(-120));
