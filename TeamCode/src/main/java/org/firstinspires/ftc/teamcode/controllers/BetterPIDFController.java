@@ -249,6 +249,12 @@ public class BetterPIDFController {
         kF = kf;
     }
 
+    public void setPID(double kp, double ki, double kd) {
+        kP = kp;
+        kI = ki;
+        kD = kd;
+    }
+
     public void setIntegrationBounds(double integralMin, double integralMax) {
         minIntegral = integralMin;
         maxIntegral = integralMax;

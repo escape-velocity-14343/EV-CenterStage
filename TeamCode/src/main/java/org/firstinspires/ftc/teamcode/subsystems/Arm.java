@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingServo;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 import org.firstinspires.ftc.teamcode.drivers.AS5600;
 
@@ -16,20 +17,22 @@ public class Arm {
     private CachingMotor slideMotor1;
     private CachingMotor slideMotor0;
     private CachingMotor tiltMotor;
+    private CachingServo lifter;
     private AS5600 tiltSensor;
 
     // TODO: empirically find these
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
     public static double COAXIAL_EFFECT_CORRECTION = 0.504;
     public static double MIN_POWER = 0.5;
-    public static double slidekG = 0.1;
+    public static double slidekG = 0.11;
     public static double tiltkG = 0.1;
     public static boolean useGainSchedule = false;
     private InterpLUT slidekS = new InterpLUT();
 
     public static double tiltP  = 0.02;
 
-    public static double slideP = 0.0005;
+    public static double slideP = 0.0015;
+    public static double tiltOffset = 107;
     /**
      *
      * Max ticks per second when slide is stalled.
@@ -54,6 +57,7 @@ public class Arm {
     private double slideTarget = 0;
 
     private boolean hasMoved = false;
+    public static double lifterOuttakePos = 0.37;
 
 
 
@@ -63,6 +67,7 @@ public class Arm {
         this.slideMotor1 = new CachingMotor(hmap, "slides1");
         this.tiltMotor = new CachingMotor(hmap, "tilt");
         this.tiltSensor = new AS5600(hmap, "tiltSensor");
+        this.lifter = new CachingServo(hmap.servo.get("lifter"));
         slideMotor1.setRunMode(Motor.RunMode.RawPower);
         slideMotor1.setInverted(true);
         slideMotor0.setInverted(true);
@@ -70,7 +75,8 @@ public class Arm {
         tiltMotor.setRunMode(Motor.RunMode.RawPower);
         slidekS.add(0, 0.3);
         slidekS.add(1000, 0.1);
-
+        setArmOffset(tiltOffset);
+        setSensorInverted(true);
         slidekS.createLUT();
 
     }
@@ -151,15 +157,17 @@ public class Arm {
      * @param target Location to PID to in ticks.
      */
     public void extend(double target) {
-        target = Range.clip(target, 0, SLIDES_MAX_EXTENSION_VALUE);
+        //target = Range.clip(target, 0, SLIDES_MAX_EXTENSION_VALUE);
         this.slideTarget = target;
         double power = slideIQID.calculate(slidePos, target);
         double ff = slidekG;
         // add kstatic friction term
-        ff += Math.signum(power) * slidekS.get(slidePos);
+        // TODO: add back the kS term
+        //ff += Math.signum(power) * slidekS.get(slidePos);
         ff *= Math.abs(Math.sin(Math.toRadians(tiltPos)));
         moveSlides( power + ff);
     }
+
 
     /**
      * Function for convenience. Uses arm.extend() and the ArmIVK conversion value.
@@ -177,6 +185,9 @@ public class Arm {
         if (Math.abs(this.slideTarget-this.slidePos) > tolerance) {
             return false;
         } else return true;
+    }
+    public void outtakeLifter() {
+        lifter.setPosition(lifterOuttakePos);
     }
 
 

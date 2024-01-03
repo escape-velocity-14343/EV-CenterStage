@@ -17,12 +17,15 @@ public class SwerveTest extends Robot {
     public static double rightTarget = 0;
     public static boolean pid = false;
     public static double targetDegrees = 0;
+    public static boolean setAuto = false;
     int cycles = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
         initialize();
-        swerve.setAuton();
+        if (setAuto) {
+            swerve.setAuton();
+        }
         waitForStart();
         ElapsedTime timer = new ElapsedTime();
         while(!isStopRequested()) {
@@ -35,11 +38,15 @@ public class SwerveTest extends Robot {
                 telemetry.addData("left target", leftTarget);
                 telemetry.addData("right target", rightTarget);
             }
-            if (pid) {
+            /*if (pid) {
                 swerve.headingLock(true, Math.toRadians(targetDegrees));
             } else {
-                swerve.setAuton();
-            }
+                if (setAuto) {
+                    swerve.setAuton();
+                } else {
+                    swerve.headingLock(false, getHeading());
+                }
+            }*/
             telemetry.addData("left rotation",swerve.getRotations()[0]);
             telemetry.addData("right rotation", swerve.getRotations()[1]);
             telemetry.addData("heading target", targetDegrees);

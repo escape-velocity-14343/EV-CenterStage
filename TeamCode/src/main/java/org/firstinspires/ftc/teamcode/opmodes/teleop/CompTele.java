@@ -23,9 +23,9 @@ public class CompTele extends Robot {
 
             // outtake
             if (inOuttake() && isDone()) {
-                if (gamepad1c.left_trigger > 0.7) {
+                if (gamepad1c.left_trigger > 0) {
                     setOuttake(getArmDistance(), getArmHeight() - gamepad1c.left_trigger * (loopNanos / 1e8));
-                } else if (gamepad1c.right_trigger > 0.7) {
+                } else if (gamepad1c.right_trigger > 0) {
                     setOuttake(getArmDistance(), getArmHeight() + gamepad1c.right_trigger * (loopNanos / 1e8));
                 }
 
@@ -41,9 +41,9 @@ public class CompTele extends Robot {
                 if (gamepad2c.circle) {
                     bucket.setRightLatch(true);
                 }
-                if (gamepad2c.left_trigger > 0.7) {
+                if (gamepad2c.left_trigger > 0) {
                     setOuttake(getArmDistance() - gamepad2c.left_trigger * (loopNanos / 1e8), getArmHeight());
-                } else if (gamepad2c.right_trigger > 0.7) {
+                } else if (gamepad2c.right_trigger > 0) {
                     setOuttake(getArmDistance() + gamepad2c.right_trigger * (loopNanos / 1e8), getArmHeight());
                 }
                 if (gamepad2c.triangle) {
@@ -53,10 +53,12 @@ public class CompTele extends Robot {
             }
             // intake
             if (inIntake() && isDone()) {
-                if (gamepad1c.left_trigger > 0.7) {
-                    arm.moveSlides(gamepad1c.left_trigger);
-                } else if (gamepad1c.right_trigger > 0.7) {
-                    arm.moveSlides(-gamepad1c.right_trigger);
+                if (gamepad1c.left_trigger > 0) {
+                    arm.moveSlides(-gamepad1c.left_trigger);
+                } else if (gamepad1c.right_trigger > 0) {
+                    arm.moveSlides(gamepad1c.right_trigger);
+                } else {
+                    arm.moveSlides(0);
                 }
 
                 if (gamepad1c.square) {
@@ -78,15 +80,23 @@ public class CompTele extends Robot {
             }
             if (gamepad1c.right_bumper) {
                 intake();
-                setIntake(180);
+                setIntake(0);
             }
             if (gamepad1c.left_bumper) {
                 intake();
-                setIntake(175);
+                setIntake(0);
             }
 
+            // turn off heading lock if arm is extended
+            if (arm.getPosition() > 50) {
+                swerve.setAuton();
+            } else {
+                swerve.setNormal();
+            }
+            telemetry.addData("arm enc pos", arm.getPosition());
+
             // overrides
-            if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
+            /*if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
                 setAutoLatch(false);
             }
             if (gamepad2c.right_stick_button && !lastgamepad2c.right_stick_button) {
@@ -122,7 +132,7 @@ public class CompTele extends Robot {
                     swerve.headingLock(true, getHeading());
                     swerve.headingLock(false, getHeading());
                 }
-            }
+            }*/
 
 
 

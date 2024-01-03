@@ -14,6 +14,9 @@ public class ArmTuner extends Robot {
     public static int armExtensionTarget = 0;
     public static double armTiltTargetDegrees = 0;
     public static double bucketTiltDegrees = 0;
+    public static boolean useArmIVK = false;
+    public static double armIVKDistance = 0;
+    public static double armIVKHeight = 0;
 
     @Override
     public void runOpMode() {
@@ -21,9 +24,14 @@ public class ArmTuner extends Robot {
         waitForStart();
         setFSMtoAuto();
         while (opModeIsActive()) {
-            arm.extend(armExtensionTarget);
-            arm.tiltArm(armTiltTargetDegrees);
-            bucket.tilt(ArmIVK.getBucketTilt(arm.getTilt(), Math.toRadians(bucketTiltDegrees)));
+            if (useArmIVK) {
+                ArmIVK.calcBackdropIVK(armIVKDistance, armIVKHeight);
+                goToArmIVK();
+            } else {
+                arm.extendInches(armExtensionTarget);
+                arm.tiltArm(armTiltTargetDegrees);
+                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.toRadians(bucketTiltDegrees)));
+            }
             telemetry.addData("Arm Position", arm.getPosition());
             telemetry.addData("Arm Target", armExtensionTarget);
             telemetry.addData("Tilt Position", arm.getTilt());

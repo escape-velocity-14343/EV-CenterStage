@@ -7,7 +7,7 @@ import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 @Config
-@TeleOp(group="testing")
+@TeleOp(group="test")
 public class PosSquIDTest extends Robot {
 
     public static double PIDpos = 0;

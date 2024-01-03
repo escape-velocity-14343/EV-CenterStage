@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 @Config
-@TeleOp(group="Testing")
+@TeleOp(group="test")
 public class ArmRotationTest extends Robot {
     public static double rotationOffset = 0;
     public static boolean invert = false;

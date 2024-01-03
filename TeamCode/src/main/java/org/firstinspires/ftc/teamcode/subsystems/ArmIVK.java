@@ -10,13 +10,13 @@ import com.qualcomm.robotcore.util.Range;
 @Config
 public class ArmIVK {
     // Constants
-    public static double TICKS_PER_INCH = 0;
+    public static double TICKS_PER_INCH = 38;
     public static double BACKDROP_OFFSET_INCHES = 0.1;
     public static double BUCKET_OFFSET_INCHES = 3.93700787;
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
-    public static double BUCKET_LENGTH_INCHES = 5;
-    public static double MAX_BUCKET_TILT_RADIANS = Math.toRadians(180);
-    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = Math.toRadians(-90);
+    public static double BUCKET_LENGTH_INCHES = -20;
+    public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
+    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
     public static double ARM_START_OFFSET_INCHES = 5;
 
@@ -32,9 +32,12 @@ public class ArmIVK {
      */
     // TODO: suspect this math is wrong because backdrop should be 60 degrees not 120 or maybe vice versa
     public static boolean calcBackdropIVK(double distance, double height) {
+        // account for reversed angles
+        distance = -distance+15;
+        height -= 5;
         Vector2d backdropSpot = new Vector2d(distance, height);
         backdropSpot = backdropSpot.plus(new Vector2d(BACKDROP_OFFSET_INCHES*Math.cos(Math.toRadians(150)), BACKDROP_OFFSET_INCHES*Math.sin(Math.toRadians(150))));
-        return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(60));
+        return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(-120));
     }
 
     /**
@@ -55,7 +58,7 @@ public class ArmIVK {
         bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
         double newSlideExtension = bucketPos.magnitude();
         double newArmAngle = bucketPos.angle();
-        double newBucketTilt = (bucketAngle - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS;
+        double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
         // safety checks
         if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum slide extension.");
@@ -91,7 +94,8 @@ public class ArmIVK {
      * @return In servo range (0-1).
      */
     public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
-
+        // sillyness to get this to function properly lmfao
+        return Range.clip((-armAngle - desiredBucketTilt + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
 
     }
 

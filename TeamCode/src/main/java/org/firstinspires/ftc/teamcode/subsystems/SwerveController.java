@@ -326,6 +326,12 @@ public class SwerveController extends RobotDrive {
     public void setAuton() {
         rotMode = rotationMode.AUTON;
     }
+
+    public void setNormal() {
+        if (rotMode == rotationMode.AUTON) {
+            rotMode = rotationMode.BASE;
+        }
+    }
     public void setInit() { rotMode = rotationMode.BASE; }
     public void setVoltageLimit(double voltage) {
         this.voltageLimit = voltage;

@@ -57,7 +57,8 @@ public abstract class Robot extends LinearOpMode {
     private enum intakeStates {
         EXTENDED,
         RETRACTED,
-        TILTED
+        TILTED,
+        DONE
     }
 
     private enum outtakeStates {
@@ -115,7 +116,7 @@ public abstract class Robot extends LinearOpMode {
     private double lastArmIVKHeight = 0;
     private double lastArmIVKDistance = 0;
     private double intakeTilt = 0;
-    private boolean disableAutoRetract = false;
+    private boolean disableAutoRetract = true;
     private int flipHeadingLock = 1;
 
 
@@ -137,7 +138,6 @@ public abstract class Robot extends LinearOpMode {
         }
         toggleableTelemetry = new ToggleTelemetry(telemetry);
         arm = new Arm(hardwareMap);
-        arm.setArmOffset(47);
         bucket = new Bucket(hardwareMap);
         swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
         odometry = new Odometry(hardwareMap, toggleableTelemetry);
@@ -219,18 +219,34 @@ public abstract class Robot extends LinearOpMode {
                         }
                         break;
                     case TILTED:
+                        arm.outtakeLifter();
                         // tilt if the arm is in a reasonable position to tilt
                         if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
                             arm.tiltArm(intakeTilt);
                         }
                         bucket.intake();
                         bucket.smartLatch();
-                        if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.7 && gamepad1c.right_trigger < 0.7 && !disableAutoRetract) {
+                        arm.extend(200);
+                        if (arm.isDone(20)) {
+                            intakeProgress = intakeStates.DONE;
+                        }
+                        break;
+                    case DONE:
+                        arm.outtakeLifter();
+                        // tilt if the arm is in a reasonable position to tilt
+                        if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
+                            arm.tiltArm(intakeTilt);
+                        }
+                        bucket.intake();
+                        bucket.smartLatch();
+                        if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.1 && gamepad1c.right_trigger < 0.1 && !disableAutoRetract) {
                             gamepad1.rumble(50);
                             arm.extend(100);
                         }
                         fsmIsDone = true;
+                        break;
                 }
+                break;
 
             case OUTTAKE:
                 switch (outtakeProgress) {
@@ -279,7 +295,7 @@ public abstract class Robot extends LinearOpMode {
                 break;
         }
         // if nothing else is happening, hold position
-        arm.holdPosition();
+        //arm.holdPosition();
 
         telemetry.update();
 
