@@ -27,6 +27,9 @@ public class ArmTuner extends Robot {
             if (useArmIVK) {
                 ArmIVK.calcBackdropIVK(armIVKDistance, armIVKHeight);
                 goToArmIVK();
+                telemetry.addData("Bucket target", ArmIVK.getBucketTilt());
+                telemetry.addData("Arm Angle target", ArmIVK.getArmAngle());
+                telemetry.addData("Arm Extension target", ArmIVK.getSlideExtension());
             } else {
                 arm.extendInches(armExtensionTarget);
                 arm.tiltArm(armTiltTargetDegrees);

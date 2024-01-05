@@ -343,8 +343,9 @@ public abstract class AutoBase extends Robot {
                         .setHeadingTolerance(0.05)
                         .setRotationOffset(Math.PI));
                 if (atPoint()) {
-                    intake();
-                    setState(400);
+                    setState(950);
+                    //intake();
+                    //setState(400);
                 }
             }
 

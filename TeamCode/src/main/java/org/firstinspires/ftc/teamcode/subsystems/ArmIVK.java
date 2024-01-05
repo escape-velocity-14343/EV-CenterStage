@@ -14,11 +14,14 @@ public class ArmIVK {
     public static double BACKDROP_OFFSET_INCHES = 0.1;
     public static double BUCKET_OFFSET_INCHES = 3.93700787;
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
-    public static double BUCKET_LENGTH_INCHES = 4;
+    public static double BUCKET_LENGTH_INCHES = 3.25;
     public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
     public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
-    public static double ARM_START_OFFSET_INCHES = -6;
+    public static double ARM_START_OFFSET_INCHES = -5.5;
+    public static double ARM_INITIAL_LENGTH = 13;
+    public static double BUCKET_OFFSET_PIVOT_OFFSET_X = 0;
+    public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
@@ -51,11 +54,11 @@ public class ArmIVK {
         // offset to start of bucket offset
         bucketPos = bucketPos.plus(new Vector2d(BUCKET_LENGTH_INCHES*Math.cos(Math.PI+bucketAngle), BUCKET_LENGTH_INCHES*Math.sin(Math.PI+bucketAngle)));
         // offset by bucket offset angle
-        bucketPos = bucketPos.plus(new Vector2d(BUCKET_OFFSET_INCHES*Math.cos(BUCKET_OFFSET_TO_BUCKET_RADIANS), BUCKET_OFFSET_INCHES*Math.sin(BUCKET_OFFSET_TO_BUCKET_RADIANS)));
+        bucketPos = bucketPos.plus(new Vector2d(BUCKET_OFFSET_INCHES*Math.cos(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle), BUCKET_OFFSET_INCHES*Math.sin(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle)));
         // we now have the slide end pos
         // offset by slide start amount
         bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
-        double newSlideExtension = bucketPos.magnitude();
+        double newSlideExtension = bucketPos.magnitude() - ARM_INITIAL_LENGTH;
         double newArmAngle = bucketPos.angle();
         double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
         // safety checks

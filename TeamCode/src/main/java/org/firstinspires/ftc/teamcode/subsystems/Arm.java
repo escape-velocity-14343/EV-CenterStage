@@ -32,7 +32,7 @@ public class Arm {
     public static double tiltP  = 0.02;
 
     public static double slideP = 0.0015;
-    public static double tiltOffset = 107;
+    public static double tiltOffset = 47;
     /**
      *
      * Max ticks per second when slide is stalled.

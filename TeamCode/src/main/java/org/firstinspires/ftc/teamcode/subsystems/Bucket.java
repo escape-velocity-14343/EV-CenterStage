@@ -28,7 +28,7 @@ public class Bucket {
     public static double latchPos = 0.7;
     public static double unlatchPos = 0.2;
     public static double doublePixelPos = 0.3;
-    public static double intakePos = 0.2712151519295199284812891211202294862828485892893905992002026920509209105098198235920398398460991089509208349823598981434341082133610920182251081930280291339102983019252035893098360980928091113671020381509283883091093809350913508130809090909090901901100101010101010101011001101012910101;
+    public static double intakePos = 0.2;
     public static double outtakePos = 1;
     public static int intakeMaxProx = 220;
     public static double pixelInDelaySeconds = 0.1;

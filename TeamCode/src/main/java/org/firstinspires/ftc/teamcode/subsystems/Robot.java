@@ -281,13 +281,14 @@ public abstract class Robot extends LinearOpMode {
                         goToArmIVK();
                         fsmIsDone = true; break;
                 }
+                break;
             case INIT:
                 bucket.intake(); break;
             case FOLDED:
                 bucket.intake();
                 arm.extend(0);
                 if (arm.isDone(10)) {
-                    arm.tiltArm(0);
+                    arm.tiltArm(150);
                 }
                 if (arm.isDone(10) && arm.isTilted(1)) {
                     fsmIsDone = true;

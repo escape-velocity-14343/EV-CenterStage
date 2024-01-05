@@ -19,7 +19,7 @@ public class CompTele extends Robot {
         while (opModeIsActive()) {
             update();
 
-            swerve.driveFieldCentric(gamepad1c.left_stick_x, -gamepad1c.left_stick_y, gamepad1c.right_stick_x);
+            swerve.driveFieldCentric(-gamepad1c.left_stick_x, -gamepad1c.left_stick_y, gamepad1c.right_stick_x);
 
             // outtake
             if (inOuttake() && isDone()) {
@@ -85,6 +85,9 @@ public class CompTele extends Robot {
             if (gamepad1c.left_bumper) {
                 intake();
                 setIntake(0);
+            }
+            if (gamepad1c.touchpad) {
+                foldArm();
             }
 
             // turn off heading lock if arm is extended
