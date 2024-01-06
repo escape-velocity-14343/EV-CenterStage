@@ -30,10 +30,11 @@ public class Bucket {
     public static double doublePixelPos = 0.3;
     public static double intakePos = 0.2;
     public static double outtakePos = 1;
-    public static int intakeMaxProx = 220;
+    public static int intakeMaxProx = 240;
     public static double pixelInDelaySeconds = 0.1;
     private ElapsedTime leftPixelInTimer = new ElapsedTime();
     private ElapsedTime rightPixelInTimer = new ElapsedTime();
+    int leftprox = 0, rightprox = 0;
 
     public boolean disableAutoLatch = false;
 
@@ -51,8 +52,8 @@ public class Bucket {
      */
     public void update() {
 
-        int leftprox = leftSensor.getProximity();
-        int rightprox = rightSensor.getProximity();
+        leftprox = leftSensor.getProximity();
+        rightprox = rightSensor.getProximity();
         leftHasPixels = leftprox < intakeMaxProx;
         rightHasPixels = rightprox < intakeMaxProx;
         if (!leftHasPixels) {
@@ -113,7 +114,7 @@ public class Bucket {
         }
     }
 
-    public void setLeftLatch(boolean latchLeft) {
+    public void setRightLatch(boolean latchLeft) {
         if (!latchLeft) {
             rightLatch.setPosition(unlatchPos);
         } else {
@@ -121,7 +122,7 @@ public class Bucket {
         }
     }
 
-    public void setRightLatch(boolean latchRight) {
+    public void setLeftLatch(boolean latchRight) {
         if (!latchRight) {
             leftLatch.setPosition(unlatchPos);
         } else {
@@ -163,6 +164,12 @@ public class Bucket {
     public void frontIntake() {
         bucketTilt.setPosition(1-intakePos);
         smartLatch();
+    }
+    public double getLeftDist() {
+        return leftprox;
+    }
+    public double getRightDist() {
+        return rightprox;
     }
 
     public void tilt(double pos) {

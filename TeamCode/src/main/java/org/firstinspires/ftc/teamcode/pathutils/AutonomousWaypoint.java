@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.pathutils;
 
 import android.util.Log;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 
@@ -11,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+@Config
 public class AutonomousWaypoint {
 
     private static boolean isRed = true;
@@ -18,13 +20,13 @@ public class AutonomousWaypoint {
     /**
      * For points that need maximal precision (ex if you were scoring or crossing through trusses)
      */
-    private static double DEFAULT_TOLERANCE = 0.5;
-    private static double DEFAULT_HEADING_TOLERANCE = 0.1;
+    public static double DEFAULT_TOLERANCE = 1;
+    public static double DEFAULT_HEADING_TOLERANCE = 0.2;
     /**
      * For points that need less precision (ex a point that is a control point but not an end point on the path)
      */
-    private static double DEFAULT_IMPRECISE_TOLERANCE = 2;
-    private static double DEFAULT_IMPRECISE_HEADING_TOLERANCE = 0.4;
+    public static double DEFAULT_IMPRECISE_TOLERANCE = 2;
+    public static double DEFAULT_IMPRECISE_HEADING_TOLERANCE = 0.4;
     private static Point GLOBAL_AUDIENCE_OFFSET = new Point(0, 0, 0);
     private static Point GLOBAL_BLUE_OFFSET = new Point(0, 0, 0);
 
@@ -99,7 +101,7 @@ public class AutonomousWaypoint {
     }
 
     public boolean isAtPoint(Pose2d robotpose) {
-        Pose2d endpose = this.getPoint().toPose2d();
+        Pose2d endpose = this.getPoint(robotpose).toPose2d();
         endpose = endpose.relativeTo(robotpose);
         if (Math.sqrt(Math.pow(endpose.getX(), 2) + Math.pow(endpose.getY(), 2)) < this.tolerance && Math.abs(endpose.getRotation().getRadians()) < this.headingTolerance) {
             return true;

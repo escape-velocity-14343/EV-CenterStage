@@ -56,7 +56,7 @@ public class TeamPropProcessor implements VisionProcessor {
     private Rect midrect;
     private Rect rightrect;
 
-    private Integer placement;
+    private Integer placement = 1;
 
     private double[] avgs = new double[3];
 

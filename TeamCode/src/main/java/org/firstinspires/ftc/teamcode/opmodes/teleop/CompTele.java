@@ -24,9 +24,9 @@ public class CompTele extends Robot {
             // outtake
             if (inOuttake() && isDone()) {
                 if (gamepad1c.left_trigger > 0) {
-                    setOuttake(getArmDistance(), getArmHeight() - gamepad1c.left_trigger * (loopNanos / 1e8));
+                    setOuttake(getArmDistance() - gamepad1c.left_trigger * (loopNanos / 4e7), getArmHeight() - gamepad1c.left_trigger * (loopNanos / 2e7));
                 } else if (gamepad1c.right_trigger > 0) {
-                    setOuttake(getArmDistance(), getArmHeight() + gamepad1c.right_trigger * (loopNanos / 1e8));
+                    setOuttake(getArmDistance() + gamepad1c.right_trigger * (loopNanos / 4e7), getArmHeight() + gamepad1c.right_trigger * (loopNanos / 2e7));
                 }
 
                 if (gamepad1c.square) {
@@ -72,11 +72,11 @@ public class CompTele extends Robot {
             // fsm transitions
             if (gamepad1c.triangle) {
                 outtake();
-                setOuttake(10, getArmHeight());
+                setOuttake(14+getArmHeight()/2, getArmHeight());
             }
             if (gamepad1c.cross) {
                 outtake();
-                setOuttake(24, getArmHeight());
+                setOuttake(24+getArmHeight()/2, getArmHeight());
             }
             if (gamepad1c.right_bumper) {
                 intake();
@@ -97,9 +97,11 @@ public class CompTele extends Robot {
                 swerve.setNormal();
             }
             telemetry.addData("arm enc pos", arm.getPosition());
+            telemetry.addData("left prox", bucket.getLeftDist());
+            telemetry.addData("right prox", bucket.getRightDist());
 
             // overrides
-            /*if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
+            if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
                 setAutoLatch(false);
             }
             if (gamepad2c.right_stick_button && !lastgamepad2c.right_stick_button) {
@@ -135,7 +137,7 @@ public class CompTele extends Robot {
                     swerve.headingLock(true, getHeading());
                     swerve.headingLock(false, getHeading());
                 }
-            }*/
+            }
 
 
 

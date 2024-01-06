@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Arm;
 public class ArmTest extends LinearOpMode {
     @Override
     public void runOpMode() {
-        Arm arm = new Arm(hardwareMap);
+        Arm arm = new Arm(hardwareMap,telemetry);
         waitForStart();
         while (opModeIsActive()) {
             if (gamepad1.left_trigger > 0.1) {

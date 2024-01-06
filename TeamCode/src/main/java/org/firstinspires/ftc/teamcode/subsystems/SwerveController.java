@@ -9,6 +9,7 @@ import com.arcrobotics.ftclib.drivebase.RobotDrive;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -345,23 +346,36 @@ public class SwerveController extends RobotDrive {
     private AutonomousWaypoint targetWaypoint;
     public void driveTo(Pose2d robotPose, Pose2d robotVelocity, AutonomousWaypoint endWaypoint, Odometry odometry) {
         // move robot by last velocity * multiplier
-        robotPose = new Pose2d(robotPose.getX() + robotVelocity.getX() * lastVelocityMultiplier, robotPose.getY() + robotVelocity.getY() * lastVelocityMultiplier, new Rotation2d(robotPose.getRotation().getRadians() + robotVelocity.getRotation().getRadians() * lastVelocityMultiplier));
+        //robotPose = new Pose2d(robotPose.getX() + robotVelocity.getX() * lastVelocityMultiplier, robotPose.getY() + robotVelocity.getY() * lastVelocityMultiplier, new Rotation2d(robotPose.getRotation().getRadians() + robotVelocity.getRotation().getRadians() * lastVelocityMultiplier));
         this.setAuton();
         targetWaypoint = endWaypoint;
         Pose2d endPose = endWaypoint.getPoint(robotPose).toPose2d();
         poscontroller.setPID(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
-        endPose = endPose.relativeTo(robotPose);
+        /*endPose = endPose.relativeTo(robotPose);
         double mag = Math.sqrt(Math.pow(endPose.getX(), 2) + Math.pow(endPose.getY(), 2));
+        telemetry.addData("pos error", mag);
         double arg = Math.atan2(endPose.getY(), endPose.getX()) + Math.PI/2;
+        telemetry.addData("heading error", AngleUnit.normalizeRadians(robotPose.getRotation().getRadians() - endWaypoint.getPoint(robotPose).toPose2d().getRotation().getRadians()));
         mag = poscontroller.calculate(mag, 0);
-        double rot = endPose.getRotation().getRadians();
+        double rot = endPose.getRotation().getRadians();*/
+        double rot = AngleUnit.normalizeRadians(endPose.getRotation().getRadians() - robotPose.getRotation().getRadians());
         if (runIQID) {
             rot = headingIQID.calculate(rot, 0);
         } else {
             rot = headingPID.calculate(rot, 0);
         }
-        odometry.setTarget(30 * mag * Math.cos(arg), 30 * mag * Math.sin(arg));
-        this.polarDriveFieldCentric(arg, mag, rot);
+        /*odometry.targetx2 = 30 * mag * Math.cos(arg);
+        odometry.targety2 = 30 * mag * Math.sin(arg);
+        //odometry.setTarget(30 * mag * Math.cos(arg), 30 * mag * Math.sin(arg));
+        this.polarDriveFieldCentric(arg, mag, rot);*/
+        double xErr = endPose.getX() - robotPose.getX();
+        double yErr = endPose.getY() - robotPose.getY();
+        double dist = Math.sqrt(xErr*xErr+yErr*yErr);
+        double angle = Math.atan2(xErr,-yErr);
+        double move = poscontroller.calculate(dist, 0);
+        double xmove = Math.sin(angle) * move;
+        double ymove = Math.cos(angle) * move;
+        driveFieldCentric(ymove,-xmove, rot);
     }
 
     public boolean atPoint(Pose2d robotpose) {

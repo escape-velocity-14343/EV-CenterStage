@@ -21,7 +21,7 @@ public class GarbageTest extends Robot {
             telemetry.addData("left rotation",swerve.getRotations()[0]);
             telemetry.addData("right rotation", swerve.getRotations()[1]);
         }
-        Arm arm = new Arm(hardwareMap);
+        Arm arm = new Arm(hardwareMap, telemetry);
         while (opModeIsActive()) {
             if (gamepad1.left_trigger > 0.1) {
                 arm.moveSlides(gamepad1.left_trigger);

@@ -26,6 +26,7 @@ public class Odometry {
     Canvas field = new Canvas();
     TelemetryPacket packet = new TelemetryPacket();
     double targetx=-10000, targety=-10000;
+    public double targetx2=-10000, targety2=-10000;
 
     // TODO: Empirically tune these
     public static double TICKS_PER_INCH = 936;
@@ -94,8 +95,8 @@ public class Odometry {
         field.strokeLine(x1, y1, x2, y2);
         field.setFill("yellow");
         field.setStroke("yellow");
-        //field.fillCircle(targetx, targety, 2);
-        field.strokeLine(x1, y1, x1+targetx, y1+targety);
+        field.fillCircle(targetx, targety, 2);
+        field.strokeLine(x1, y1, x1+targetx2, y1+targety2);
         if (!Robot.useDashTelemetry) {
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }

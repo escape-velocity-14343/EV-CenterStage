@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.cachinghardwaredevice;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.MotorControlAlgorithm;
 import com.qualcomm.robotcore.hardware.PIDCoefficients;
@@ -8,7 +9,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
-public class CachingDcMotorEX extends CachingDcMotor implements DcMotorEx{
+public class CachingDcMotorEX extends CachingDcMotor implements DcMotorEx {
 	private final DcMotorEx motorEx;
 	/**
 	 * Default constructor for the cached motorEx, sets the threshold to 0.02

@@ -10,16 +10,16 @@ import com.qualcomm.robotcore.util.Range;
 @Config
 public class ArmIVK {
     // Constants
-    public static double TICKS_PER_INCH = 38;
-    public static double BACKDROP_OFFSET_INCHES = 0.1;
+    public static double TICKS_PER_INCH = 39.5;
+    public static double BACKDROP_OFFSET_INCHES = 0;
     public static double BUCKET_OFFSET_INCHES = 3.93700787;
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
-    public static double BUCKET_LENGTH_INCHES = 3.25;
+    public static double BUCKET_LENGTH_INCHES = 4;
     public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
     public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
     public static double ARM_START_OFFSET_INCHES = -5.5;
-    public static double ARM_INITIAL_LENGTH = 13;
+    public static double ARM_INITIAL_LENGTH = 14;
     public static double BUCKET_OFFSET_PIVOT_OFFSET_X = 0;
     public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
 

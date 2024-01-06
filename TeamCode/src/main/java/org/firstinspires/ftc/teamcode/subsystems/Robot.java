@@ -102,7 +102,7 @@ public abstract class Robot extends LinearOpMode {
      * Telemetry.
      */
     ToggleTelemetry toggleableTelemetry;
-    public static boolean useDashTelemetry = true;
+    public static boolean useDashTelemetry = false;
 
     /**
      * Control Config.
@@ -118,6 +118,7 @@ public abstract class Robot extends LinearOpMode {
     private double intakeTilt = 0;
     private boolean disableAutoRetract = true;
     private int flipHeadingLock = 1;
+    public static double MAX_TILT_CHANGE = 30;
 
 
 
@@ -137,7 +138,7 @@ public abstract class Robot extends LinearOpMode {
             telemetry = new MultipleTelemetry(FtcDashboard.getInstance().getTelemetry(), telemetry);
         }
         toggleableTelemetry = new ToggleTelemetry(telemetry);
-        arm = new Arm(hardwareMap);
+        arm = new Arm(hardwareMap,telemetry);
         bucket = new Bucket(hardwareMap);
         swerve = new SwerveController(hardwareMap, toggleableTelemetry, this);
         odometry = new Odometry(hardwareMap, toggleableTelemetry);
@@ -194,6 +195,8 @@ public abstract class Robot extends LinearOpMode {
         odometry.update(botHeading, loopNanos);
         arm.update(loopNanos);
         bucket.update();
+        telemetry.addData("slide pos", arm.getPosition());
+        telemetry.addData("arm velo", arm.getVelocity());
 
 
         fsmIsDone = false;
@@ -226,7 +229,7 @@ public abstract class Robot extends LinearOpMode {
                         }
                         bucket.intake();
                         bucket.smartLatch();
-                        arm.extend(200);
+                        arm.extend(50);
                         if (arm.isDone(20)) {
                             intakeProgress = intakeStates.DONE;
                         }
@@ -241,7 +244,7 @@ public abstract class Robot extends LinearOpMode {
                         bucket.smartLatch();
                         if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.1 && gamepad1c.right_trigger < 0.1 && !disableAutoRetract) {
                             gamepad1.rumble(50);
-                            arm.extend(100);
+                            arm.extend(10);
                         }
                         fsmIsDone = true;
                         break;
@@ -272,7 +275,7 @@ public abstract class Robot extends LinearOpMode {
                         break;
                     case RETRACTED:
                         fsmIsDone = true;
-                        goToArmIVK();
+                        safeGoToArmIVK();
                         if (arm.isTilted(1)) {
                             outtakeProgress = outtakeStates.TILTED;
                         }
@@ -285,12 +288,14 @@ public abstract class Robot extends LinearOpMode {
             case INIT:
                 bucket.intake(); break;
             case FOLDED:
-                bucket.intake();
-                arm.extend(0);
+                bucket.tilt(0.6);
+                arm.extend(10);
                 if (arm.isDone(10)) {
-                    arm.tiltArm(150);
+                    arm.tiltArm(165);
                 }
                 if (arm.isDone(10) && arm.isTilted(1)) {
+                    arm.moveTilt(0);
+                    arm.extend(10);
                     fsmIsDone = true;
                 }
                 break;
@@ -372,12 +377,12 @@ public abstract class Robot extends LinearOpMode {
      * @param height From the lowest possible pixel slot, measured in pixel slots.
      */
     public boolean calcArmIVK(double distance, double height) {
-        height = Range.clip(height, 0, 7);
+        height = Range.clip(height, 0, 50);
         // don't allow scoring from more than 2.5 tiles away to prevent minors
         distance = Range.clip(distance, 0, 60);
         lastArmIVKHeight = height;
         lastArmIVKDistance = distance;
-        return ArmIVK.calcBackdropIVK(distance, height+3);
+        return ArmIVK.calcBackdropIVK(distance, height+6);
     }
 
     public double getArmHeight() {
@@ -389,9 +394,25 @@ public abstract class Robot extends LinearOpMode {
     }
 
     public void goToArmIVK() {
-        arm.extend(ArmIVK.getSlideExtension());
-        arm.tiltArm(ArmIVK.getArmAngle());
-        bucket.tilt(ArmIVK.getBucketTilt());
+        if (AngleUnit.normalizeDegrees(Math.abs(arm.getTilt() - ArmIVK.getArmAngle())) > MAX_TILT_CHANGE) {
+            safeGoToArmIVK();
+        } else {
+            arm.extend(ArmIVK.getSlideExtension());
+            arm.tiltArm(ArmIVK.getArmAngle());
+            bucket.tilt(ArmIVK.getBucketTilt());
+        }
+    }
+
+    public void safeGoToArmIVK() {
+        if (arm.getPosition() < 100) {
+            arm.tiltArm(ArmIVK.getArmAngle());
+        } else {
+            arm.moveSlides(-1);
+        }
+        if (arm.isTilted(1)) {
+            arm.extend(ArmIVK.getSlideExtension());
+            bucket.tilt(ArmIVK.getBucketTilt());
+        }
     }
 
     /*
@@ -452,6 +473,7 @@ public abstract class Robot extends LinearOpMode {
 
     public void goToPoint(AutonomousWaypoint endwaypoint) {
         swerve.driveTo(odometry.getPose(), odometry.getVelocityPose(), endwaypoint, odometry);
+        odometry.setTarget(endwaypoint.getPoint(odometry.getPose()).x, endwaypoint.getPoint(odometry.getPose()).y);
     }
 
     public boolean atPoint() {
