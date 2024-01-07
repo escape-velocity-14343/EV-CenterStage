@@ -265,7 +265,8 @@ public class SwerveController extends RobotDrive {
     @Override
     public void stop() {
         headingLock(false, headingLockAngle);
-        driveRobotCentric(0, 0, 0);
+        left.podMove(0,0);
+        right.podPid(0,0);
     }
 
     public boolean autonFlipHeading = false;

@@ -7,6 +7,8 @@ import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 @Config
 public class ArmIVK {
     // Constants
@@ -16,12 +18,18 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
     public static double BUCKET_LENGTH_INCHES = 4;
     public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
-    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
+    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.5;
+    public static double LIFTER_LENGTH = 3.3464;
+
+    public static double LIFTER_OFFSET_TO_ZERO = -0.095;
+    public static double LIFTER_DOWNWARD_OFFSET = 0;
     public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
     public static double ARM_START_OFFSET_INCHES = -5.5;
-    public static double ARM_INITIAL_LENGTH = 14;
+    public static double ARM_INITIAL_LENGTH = 13;
     public static double BUCKET_OFFSET_PIVOT_OFFSET_X = 0;
     public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
+    public static double BUCKET_OFFSET_X = 0;
+    public static double BUCKET_OFFSET_Y = 0;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
@@ -51,15 +59,24 @@ public class ArmIVK {
         // robot is at (0, 0)
         // midpoint of the bucket is (d, h)
         Vector2d bucketPos = new Vector2d(distance, height);
-        // offset to start of bucket offset
-        bucketPos = bucketPos.plus(new Vector2d(BUCKET_LENGTH_INCHES*Math.cos(Math.PI+bucketAngle), BUCKET_LENGTH_INCHES*Math.sin(Math.PI+bucketAngle)));
-        // offset by bucket offset angle
-        bucketPos = bucketPos.plus(new Vector2d(BUCKET_OFFSET_INCHES*Math.cos(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle), BUCKET_OFFSET_INCHES*Math.sin(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle)));
+
+        Vector2d bucketOff = new Vector2d(-BUCKET_OFFSET_X, -BUCKET_OFFSET_Y);
+        bucketOff.rotateBy(Math.toDegrees(AngleUnit.normalizeRadians(Math.PI-bucketAngle)));
+        bucketPos = bucketPos.plus(bucketOff);
+        bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
+
+        Vector2d slideOff = new Vector2d(BUCKET_OFFSET_PIVOT_OFFSET_X, BUCKET_OFFSET_PIVOT_OFFSET_Y);
+        double currLen = bucketPos.magnitude();
+        double slidelen = Math.sqrt(Math.pow(currLen, 2) - Math.pow(BUCKET_OFFSET_PIVOT_OFFSET_Y, 2));
+        Log.println(Log.INFO, "ARMIVK", "prev angle: " + bucketPos.angle());
+        Log.println(Log.INFO, "ARMIvk", "Angle correction: " + Math.atan2(BUCKET_OFFSET_PIVOT_OFFSET_X, slidelen));
+        double newArmAngle = bucketPos.angle() - Math.atan2(BUCKET_OFFSET_PIVOT_OFFSET_X, slidelen);
+        //bucketPos = bucketPos.plus(new Vector2d(BUCKET_OFFSET_INCHES*Math.cos(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle), BUCKET_OFFSET_INCHES*Math.sin(BUCKET_OFFSET_TO_BUCKET_RADIANS+bucketAngle)));
         // we now have the slide end pos
         // offset by slide start amount
-        bucketPos = bucketPos.plus(new Vector2d(ARM_START_OFFSET_INCHES, 0));
-        double newSlideExtension = bucketPos.magnitude() - ARM_INITIAL_LENGTH;
-        double newArmAngle = bucketPos.angle();
+
+        double newSlideExtension = currLen - ARM_INITIAL_LENGTH + BUCKET_OFFSET_PIVOT_OFFSET_X;
+        //double newArmAngle = bucketPos.angle();
         double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
         // safety checks
         if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
@@ -99,6 +116,14 @@ public class ArmIVK {
         // sillyness to get this to function properly lmfao
         return Range.clip((-armAngle - desiredBucketTilt + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
 
+    }
+    /**
+     * @param height In Inches.
+     * @return In Servo range (0-1).
+     * */
+    public static double getLifterTilt(double height) {
+        double angle = Math.acos(height+LIFTER_DOWNWARD_OFFSET/LIFTER_LENGTH);
+        return Range.clip(angle/MAX_BUCKET_TILT_RADIANS+LIFTER_OFFSET_TO_ZERO, 0, 1);
     }
 
     /**

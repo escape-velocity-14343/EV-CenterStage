@@ -49,6 +49,7 @@ public abstract class Robot extends LinearOpMode {
         OUTTAKE,
         AUTO,
         FOLDED,
+        IFOLD,
         NONE,
         INIT
 
@@ -222,7 +223,7 @@ public abstract class Robot extends LinearOpMode {
                         }
                         break;
                     case TILTED:
-                        arm.outtakeLifter();
+                        arm.setLifterHeight(0);
                         // tilt if the arm is in a reasonable position to tilt
                         if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
                             arm.tiltArm(intakeTilt);
@@ -237,9 +238,6 @@ public abstract class Robot extends LinearOpMode {
                     case DONE:
                         arm.outtakeLifter();
                         // tilt if the arm is in a reasonable position to tilt
-                        if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
-                            arm.tiltArm(intakeTilt);
-                        }
                         bucket.intake();
                         bucket.smartLatch();
                         if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.1 && gamepad1c.right_trigger < 0.1 && !disableAutoRetract) {
@@ -299,6 +297,19 @@ public abstract class Robot extends LinearOpMode {
                     fsmIsDone = true;
                 }
                 break;
+            case IFOLD:
+                bucket.tilt(0.6);
+                arm.extend(10);
+                if (arm.isDone(10)) {
+                    arm.tiltArm(10);
+                }
+                if (arm.isDone(10) && arm.isTilted(1)) {
+                    arm.moveTilt(0);
+                    arm.extend(10);
+                    fsmIsDone = true;
+                }
+                break;
+
         }
         // if nothing else is happening, hold position
         //arm.holdPosition();
@@ -343,6 +354,9 @@ public abstract class Robot extends LinearOpMode {
 
     public void foldArm() {
         this.transferStates = states.FOLDED;
+    }
+    public void iFoldArm() {
+        this.transferStates = states.IFOLD;
     }
 
     /**
@@ -404,12 +418,16 @@ public abstract class Robot extends LinearOpMode {
     }
 
     public void safeGoToArmIVK() {
-        if (arm.getPosition() < 100) {
-            arm.tiltArm(ArmIVK.getArmAngle());
-        } else {
+        if (arm.getPosition() > 100 && !arm.isTilted(1)) {
             arm.moveSlides(-1);
-        }
-        if (arm.isTilted(1)) {
+            arm.moveTilt(0);
+            bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+        } else if (!arm.isTilted(1)) {
+            arm.moveSlides(0);
+            arm.tiltArm(ArmIVK.getArmAngle());
+            bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+        } else {
+            arm.tiltArm(ArmIVK.getArmAngle());
             arm.extend(ArmIVK.getSlideExtension());
             bucket.tilt(ArmIVK.getBucketTilt());
         }

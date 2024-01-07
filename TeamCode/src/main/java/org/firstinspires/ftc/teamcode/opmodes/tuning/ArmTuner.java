@@ -17,6 +17,7 @@ public class ArmTuner extends Robot {
     public static boolean useArmIVK = false;
     public static double armIVKDistance = 0;
     public static double armIVKHeight = 0;
+    public static double lifterheight = 0;
 
     @Override
     public void runOpMode() {
@@ -34,6 +35,7 @@ public class ArmTuner extends Robot {
                 arm.extendInches(armExtensionTarget);
                 arm.tiltArm(armTiltTargetDegrees);
                 bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.toRadians(bucketTiltDegrees)));
+                arm.setLifterHeight(lifterheight);
             }
             telemetry.addData("Arm Position", arm.getPosition());
             telemetry.addData("Arm Target", armExtensionTarget);

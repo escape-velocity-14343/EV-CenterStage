@@ -1,5 +1,10 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static org.firstinspires.ftc.teamcode.subsystems.ArmIVK.LIFTER_DOWNWARD_OFFSET;
+import static org.firstinspires.ftc.teamcode.subsystems.ArmIVK.LIFTER_LENGTH;
+import static org.firstinspires.ftc.teamcode.subsystems.ArmIVK.LIFTER_OFFSET_TO_ZERO;
+import static org.firstinspires.ftc.teamcode.subsystems.ArmIVK.MAX_BUCKET_TILT_RADIANS;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.arcrobotics.ftclib.util.InterpLUT;
@@ -27,7 +32,7 @@ public class Arm {
 
     // TODO: empirically find these
     public static int SLIDES_MAX_EXTENSION_VALUE = 2500;
-    public static double COAXIAL_EFFECT_CORRECTION = 0;
+    public static double COAXIAL_EFFECT_CORRECTION = 0.504 ;
     public static double MIN_POWER = 0.2;
     public static double slidekG = 0.11;
     public static double tiltkG = 0.1;
@@ -36,6 +41,7 @@ public class Arm {
     public static double tiltP  = 0.02;
     public static double slideP = 0.0015;
     public static double tiltOffset = 45;
+    public static boolean reverseLifter = false;
     /**
      *
      * Max ticks per second when slide is stalled.
@@ -84,6 +90,7 @@ public class Arm {
         slidekS.createLUT();
         this.telemetry = telemetry;
 
+
     }
 
     public void reset() {
@@ -107,6 +114,9 @@ public class Arm {
     }
 
     public void moveSlides(double power) {
+        if (slidePos>1700&&power>0) {
+            power=0;
+        }
         // validate bounds
         power = Range.clip(power, -1, 1);
         this.lastPower = power;
@@ -122,6 +132,16 @@ public class Arm {
         tiltMotor.set(power);
         this.hasMoved = true;
     }
+    public void setLifterHeight(double height) {
+        double angle = Math.acos((height+LIFTER_DOWNWARD_OFFSET)/LIFTER_LENGTH);
+        if (!reverseLifter) {
+            lifter.setPosition(Range.clip(angle/MAX_BUCKET_TILT_RADIANS+LIFTER_OFFSET_TO_ZERO, 0, 1));
+        }
+        else {
+            lifter.setPosition(1-Range.clip(angle/MAX_BUCKET_TILT_RADIANS+LIFTER_OFFSET_TO_ZERO, 0, 1));
+        }
+
+    }
 
     /**
      * Updates the cached encooder values for the arm. Please call this every loop.
@@ -130,7 +150,7 @@ public class Arm {
         tiltIQID.setP(tiltP);
         slideIQID.setP(slideP);
         double lastPos = this.slidePos;
-        this.slidePos = slideMotor1.getCurrentPosition(); // - this.coaxialCorrection;
+        this.slidePos = slideMotor1.getCurrentPosition();//- this.coaxialCorrection;
         this.tiltPos = tiltSensor.getDegrees();
         this.coaxialCorrection = (int) (this.tiltPos * COAXIAL_EFFECT_CORRECTION);
         telemetry.addData("coax correction",coaxialCorrection);

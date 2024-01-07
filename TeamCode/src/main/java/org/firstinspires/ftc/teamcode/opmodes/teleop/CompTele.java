@@ -55,7 +55,7 @@ public class CompTele extends Robot {
             if (inIntake() && isDone()) {
                 if (gamepad1c.left_trigger > 0) {
                     arm.moveSlides(-gamepad1c.left_trigger);
-                } else if (gamepad1c.right_trigger > 0) {
+                } else if (gamepad1c.right_trigger > 0  && arm.getPosition() < 1700) {
                     arm.moveSlides(gamepad1c.right_trigger);
                 } else {
                     arm.moveSlides(0);
@@ -91,7 +91,7 @@ public class CompTele extends Robot {
             }
 
             // turn off heading lock if arm is extended
-            if (arm.getPosition() > 50) {
+            if (arm.getPosition() > 200) {
                 swerve.setAuton();
             } else {
                 swerve.setNormal();
@@ -118,11 +118,15 @@ public class CompTele extends Robot {
                     arm.moveSlides(gamepad2c.left_trigger);
                 } else if (gamepad2c.right_trigger > 0.7) {
                     arm.moveSlides(-gamepad2c.right_trigger);
+                } else {
+                    arm.moveSlides(0);
                 }
                 if (gamepad2c.left_bumper) {
                     arm.moveTilt(1);
                 } else if (gamepad2c.right_bumper) {
                     arm.moveTilt(-1);
+                } else {
+                    arm.moveTilt(0);
                 }
                 if (gamepad2c.dpad_left) {
                     arm.resetSlides();
