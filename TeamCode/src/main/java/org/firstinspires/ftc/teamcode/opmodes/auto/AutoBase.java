@@ -37,11 +37,11 @@ public abstract class AutoBase extends Robot {
     public static AutonomousWaypoint middleStack = new AutonomousWaypoint(-70.5, -48, 0);
     public static AutonomousWaypoint farStack = new AutonomousWaypoint(-70.5, -60, 0);
 
-    public static AutonomousWaypoint farBackdropDrop = new AutonomousWaypoint(64.5, -29.41, 0);
+    public static AutonomousWaypoint farBackdropDrop = new AutonomousWaypoint(64.5, -27, 0);
     public static AutonomousWaypoint middleBackdropDrop = new AutonomousWaypoint(64.5, -35.41, 0);
     public static AutonomousWaypoint closeBackdropDrop = new AutonomousWaypoint(64.5, -41.51, 0);
 
-    public static AutonomousWaypoint audiencePurpleDrop = new AutonomousWaypoint(0.5, -29.51, 0)
+    public static AutonomousWaypoint audiencePurpleDrop = new AutonomousWaypoint(0.5, -30, 0)
             .setAudienceOffset(-48, 0, 0);
 
 
@@ -212,21 +212,24 @@ public abstract class AutoBase extends Robot {
                 if (arm.getPosition() > 100) {
                     arm.moveSlides(-1);
                 } else {
+                    arm.moveSlides(0);
                     // point towards purple drop
-                    goToPoint(new AutonomousWaypoint(25, -29.41, audiencePurpleDrop)
-                            .setBlueAudienceOffset(-48, 0, 0)
+                    goToPoint(new AutonomousWaypoint(36, -36, audiencePurpleDrop)
+                            //.setBlueAudienceOffset(-48, 0, 0)
                             .setRotationOffset(Math.PI));
                     if (atPoint()) {
+                        intake();
                         setState(111);
                     }
                 }
                 // move, tilt arm & drop
             } else if (state == 111) {
                 //arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop));
-                arm.tiltArm(5);
-                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt())   , 0));
+                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(150),0));
                 if (arm.isTilted(2)) {
-                    arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop)-10);
+                    setFSMtoAuto();
+                    arm.moveTilt(0);
+                    arm.extendInches(-AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop));
                     if (arm.isDone(10) && arm.getVelocity() < 0.001) {
                         bucket.setLeftLatch(false);
                         setState(112);
@@ -281,6 +284,7 @@ public abstract class AutoBase extends Robot {
             }
 
             else if (state == 122) {
+                swerve.stop();
                 if (arm.getVelocity() < 0.001 && timer.seconds() > 0.8) {
                     bucket.setLeftLatch(false);
                 }
@@ -290,6 +294,7 @@ public abstract class AutoBase extends Robot {
                 }
                 // score yellow
             } else if (state == 220) {
+                swerve.stop();
                 arm.tiltArm(150);
                 if (arm.getPosition() > 200 && !arm.isTilted(1)) {
                     arm.moveSlides(-0.1);
@@ -319,6 +324,7 @@ public abstract class AutoBase extends Robot {
                 }
                 if (timer.seconds() > YELLOW_PIXEL_DROP_TIME) {
                     bucket.setRightLatch(false);
+                    intake();
                     setState(350);
                 }
             } // audience start yellow case
@@ -343,6 +349,7 @@ public abstract class AutoBase extends Robot {
                 setFSMtoAuto();
                 if (arm.getPosition() > 100) {
                     arm.moveSlides(-1);
+                    swerve.stop();
                 } else {
                     arm.tiltArm(173);
                     goToPoint(new AutonomousWaypoint(8, -36, backstagePurpleDrop)
@@ -353,8 +360,9 @@ public abstract class AutoBase extends Robot {
                     }
                 }
             } else if (state == 131) {
+                swerve.stop();
 
-                arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), backstagePurpleDrop)-7);
+                arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), backstagePurpleDrop)-3);
                 bucket.tilt(1);
                 if (arm.isDone(10) || (arm.getVelocity() < 0.001 && timer.seconds() > 0.5)) {
                     bucket.setlatch(false, true);
@@ -411,13 +419,13 @@ public abstract class AutoBase extends Robot {
 
             // go to normal cycle position
             else if (state == 350) {
-                intake();
+
                 // turn to stacks and go to scoring location
                 goToPoint(new AutonomousWaypoint(16, -36, closeStack)
                         .setTolerances(0.5,0.1)
                         .setRotationOffset(Math.PI));
                 if (atPoint()&&arm.isTilted(10)) {
-                    setState(351);
+                    setState(950);
                     //intake();
                     //setState(400);
                 }
@@ -427,15 +435,17 @@ public abstract class AutoBase extends Robot {
                         .setHeadingTolerance(0.05)
                         .setRotationOffset(Math.PI));
                 if (atPoint()) {
+                    setFSMtoAuto();
+                    calcArmIVK(AutonomousWaypoint.distance(odometry.getPose(), closeStack)+intakeDist,intakeHeight);
+
                     setState(400);
                 }
             }
 
             // cycle close stack
             else if (state == 400) {
-                setIntake(0);
+                goToArmIVK();
 
-                calcArmIVK(AutonomousWaypoint.distance(odometry.getPose(), closeStack)+intakeDist,intakeHeight);
                 arm.setLifterHeight(intakeLifterHeight);
                 if (arm.isDone(10)) {
                     setIntake(0);
