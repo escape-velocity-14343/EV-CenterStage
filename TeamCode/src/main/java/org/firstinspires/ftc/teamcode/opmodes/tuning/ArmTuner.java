@@ -26,7 +26,7 @@ public class ArmTuner extends Robot {
         setFSMtoAuto();
         while (opModeIsActive()) {
             if (useArmIVK) {
-                ArmIVK.calcBackdropIVK(armIVKDistance, armIVKHeight);
+                ArmIVK.calcIVK(armIVKDistance, armIVKHeight, bucketTiltDegrees);
                 goToArmIVK();
                 telemetry.addData("Bucket target", ArmIVK.getBucketTilt());
                 telemetry.addData("Arm Angle target", ArmIVK.getArmAngle());

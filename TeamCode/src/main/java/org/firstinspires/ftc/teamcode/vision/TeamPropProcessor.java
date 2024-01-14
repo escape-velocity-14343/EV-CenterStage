@@ -60,21 +60,25 @@ public class TeamPropProcessor implements VisionProcessor {
 
     private double[] avgs = new double[3];
 
-    public static int leftCenterX = 20;
-    public static int leftCenterY = 200;
-    public static int leftX = 60;
-    public static int leftY = 100;
+    public static int leftCenterX = 180;
+    public static int leftCenterY = 590;
+    public static int leftX = 120;
+    public static int leftY = 90;
     public static int leftRotation = 0;
-    public static int midCenterX = 300;
-    public static int midCenterY = 180;
-    public static int midX = 60;
-    public static int midY = 100;
+    public static int midCenterX = 480;
+    public static int midCenterY = 570;
+    public static int midX = 120;
+    public static int midY = 70;
     public static int midRotation = 0;
-    public static int rightCenterX = 570;
-    public static int rightCenterY = 260;
-    public static int rightX = 70;
-    public static int rightY = 70;
+    public static int rightCenterX = 770;
+    public static int rightCenterY = 560;
+    public static int rightX = 100;
+    public static int rightY = 100;
     public static int rightRotation = 0;
+
+    public static int blueLeftOffset = -40;
+    public static int blueMiddleOffset = -20;
+    public static int blueRightOffset = 0;
     Scalar white = new Scalar(255,255,255);
     Mat ouput = new Mat();
 
@@ -99,9 +103,9 @@ public class TeamPropProcessor implements VisionProcessor {
         //}
         //Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_RGB2YCrCb);
         try {
-            leftrect = new Rect(new Point(leftCenterX/2,leftCenterY/2),new Size (leftX/2,leftY/2));
-            midrect = new Rect(new Point(midCenterX/2,midCenterY/2),new Size (midX/2,midY/2));
-            rightrect = new Rect(new Point(rightCenterX/2,rightCenterY/2),new Size (rightX/2,rightY/2));
+            leftrect = new Rect(new Point(leftCenterX/2 + blueLeftOffset*(this.team==RED?0:1),leftCenterY/2),new Size (leftX/2,leftY/2));
+            midrect = new Rect(new Point(midCenterX/2 + blueMiddleOffset*(this.team==RED?0:1),midCenterY/2),new Size (midX/2,midY/2));
+            rightrect = new Rect(new Point(rightCenterX/2 + blueRightOffset*(this.team==RED?0:1),rightCenterY/2),new Size (rightX/2,rightY/2));
 
 
 
@@ -191,6 +195,20 @@ public class TeamPropProcessor implements VisionProcessor {
         canvas.drawRect(toGraphicsRect(leftrect, scaleBmpPxToCanvasPx), rectPaint);
         canvas.drawRect(toGraphicsRect(midrect, scaleBmpPxToCanvasPx), rectPaint);
         canvas.drawRect(toGraphicsRect(rightrect, scaleBmpPxToCanvasPx), rectPaint);
+
+        rectPaint.setColor(Color.BLUE);
+
+        switch (placement) {
+            case 0:
+                canvas.drawRect(toGraphicsRect(leftrect, scaleBmpPxToCanvasPx), rectPaint);
+                break;
+            case 1:
+                canvas.drawRect(toGraphicsRect(midrect, scaleBmpPxToCanvasPx), rectPaint);
+                break;
+            case 2:
+                canvas.drawRect(toGraphicsRect(rightrect, scaleBmpPxToCanvasPx), rectPaint);
+                break;
+        }
 
     }
 

@@ -21,9 +21,9 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.5;
     public static double LIFTER_LENGTH = 3.3464;
 
-    public static double LIFTER_OFFSET_TO_ZERO = -0.095;
+    public static double LIFTER_OFFSET_TO_ZERO = 0.1;
     public static double LIFTER_DOWNWARD_OFFSET = 0;
-    public static double MAX_ARM_EXTENSION_INCHES = 52.7559055;
+    public static double MAX_ARM_EXTENSION_INCHES = 100;
     public static double ARM_START_OFFSET_INCHES = -5.5;
     public static double ARM_INITIAL_LENGTH = 13;
     public static double BUCKET_OFFSET_PIVOT_OFFSET_X = 0;
@@ -34,6 +34,8 @@ public class ArmIVK {
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
     private static double armAngle = 0;
+    private static double lastdist;
+    private static double lastheight;
 
     private static final double sin120 = Math.sqrt(3)/2;
     private static final double cos120 = -0.5;
@@ -56,6 +58,9 @@ public class ArmIVK {
      * @param bucketAngle In Radians.
      */
     public static boolean calcIVK(double distance, double height, double bucketAngle) {
+
+        lastdist = distance;
+        lastheight = height;
         // robot is at (0, 0)
         // midpoint of the bucket is (d, h)
         Vector2d bucketPos = new Vector2d(distance, height);
@@ -77,7 +82,7 @@ public class ArmIVK {
 
         double newSlideExtension = currLen - ARM_INITIAL_LENGTH + BUCKET_OFFSET_PIVOT_OFFSET_X;
         //double newArmAngle = bucketPos.angle();
-        double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
+        double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0.2, 1);
         // safety checks
         if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum slide extension.");
@@ -146,5 +151,13 @@ public class ArmIVK {
      */
     public static void setSlideExtension(int ticks) {
         slideExtension = ticks;
+    }
+
+    public static double getLastDistance() {
+        return lastdist;
+    }
+
+    public static double getLastHeight() {
+        return lastheight;
     }
 }

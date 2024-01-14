@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
@@ -61,11 +62,50 @@ public class CompTele extends Robot {
                     arm.moveSlides(0);
                 }
 
-                if (gamepad1c.square) {
+                if (gamepad1c.square&&!lastgamepad1c.square) {
                     bucket.setLeftLatch(!bucket.leftIsLatched());
                 }
-                if (gamepad1c.circle) {
+                if (gamepad1c.circle&&!lastgamepad1c.circle) {
                     bucket.setRightLatch(!bucket.rightIsLatched());
+                }
+            }
+
+            if (inHang()) {
+                if (gamepad1c.left_trigger > 0) {
+                    hang.setPower(gamepad1c.left_trigger);
+                } else if (gamepad1c.right_trigger > 0) {
+                    // prevent overextending
+                    hang.setPower(-Range.clip(gamepad1c.right_trigger, 0, 0.7));
+                } else {
+                    hang.setPower(0);
+                }
+
+                if (gamepad1c.dpad_down&&!lastgamepad1c.dpad_down) {
+                    incrementHangState();
+                }
+
+                if (gamepad2c.left_trigger > 0) {
+                    arm.moveSlides(-gamepad1c.left_trigger);
+                } else if (gamepad2c.right_trigger > 0  && arm.getPosition() < 1700) {
+                    arm.moveSlides(gamepad1c.right_trigger);
+                } else {
+                    arm.moveSlides(0);
+                }
+            }
+
+            if (inDrone()) {
+                if (gamepad1c.dpad_right) {
+                    drone.setPosition(0);
+                } else if (gamepad1c.dpad_left) {
+                    drone.setPosition(1);
+                }
+
+                if (gamepad2c.left_trigger > 0) {
+                    arm.moveSlides(-gamepad1c.left_trigger);
+                } else if (gamepad2c.right_trigger > 0  && arm.getPosition() < 1700) {
+                    arm.moveSlides(gamepad1c.right_trigger);
+                } else {
+                    arm.moveSlides(0);
                 }
             }
 
@@ -80,14 +120,20 @@ public class CompTele extends Robot {
             }
             if (gamepad1c.right_bumper) {
                 intake();
-                setIntake(0);
+                setIntake(1);
             }
             if (gamepad1c.left_bumper) {
-                intake();
-                setIntake(0);
+                bucket.latch();
             }
             if (gamepad1c.touchpad) {
                 foldArm();
+            }
+            if (gamepad1c.dpad_down && !inHang()) {
+                hang();
+            }
+
+            if (gamepad1c.dpad_up) {
+                drone();
             }
 
             // turn off heading lock if arm is extended
@@ -114,17 +160,17 @@ public class CompTele extends Robot {
                 flipHeadingLock();
             }
             if (inAuto()) {
-                if (gamepad2c.left_trigger > 0.7) {
-                    arm.moveSlides(gamepad2c.left_trigger);
-                } else if (gamepad2c.right_trigger > 0.7) {
-                    arm.moveSlides(-gamepad2c.right_trigger);
+                if (gamepad2c.left_trigger > 0) {
+                    arm.moveSlides(-gamepad2c.left_trigger);
+                } else if (gamepad2c.right_trigger > 0) {
+                    arm.moveSlides(gamepad2c.right_trigger);
                 } else {
                     arm.moveSlides(0);
                 }
                 if (gamepad2c.left_bumper) {
-                    arm.moveTilt(1);
+                    arm.moveTilt(0.5);
                 } else if (gamepad2c.right_bumper) {
-                    arm.moveTilt(-1);
+                    arm.moveTilt(-0.5);
                 } else {
                     arm.moveTilt(0);
                 }
@@ -142,6 +188,15 @@ public class CompTele extends Robot {
                     swerve.headingLock(false, getHeading());
                 }
             }
+            /*if (gamepad2c.left_trigger>0) {
+                hang.setPower(-gamepad2c.left_trigger);
+            }
+            else if (gamepad2c.right_trigger>0) {
+                hang.setPower(gamepad2c.right_trigger);
+            }
+            else {
+                hang.setPower(0);
+            }*/
 
 
 

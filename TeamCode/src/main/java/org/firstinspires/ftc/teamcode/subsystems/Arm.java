@@ -59,7 +59,7 @@ public class Arm {
      * Ticks per second.
      */
     private double slideVelocity = 0;
-
+    private double tiltVelocity = 0;
     private double lastPower = 0;
 
     private double tiltTarget = 0;
@@ -150,12 +150,14 @@ public class Arm {
         tiltIQID.setP(tiltP);
         slideIQID.setP(slideP);
         double lastPos = this.slidePos;
+        double lastTilt = this.tiltPos;
         this.slidePos = slideMotor1.getCurrentPosition();//- this.coaxialCorrection;
         this.tiltPos = tiltSensor.getDegrees();
         this.coaxialCorrection = (int) (this.tiltPos * COAXIAL_EFFECT_CORRECTION);
         telemetry.addData("coax correction",coaxialCorrection);
         telemetry.addData("slide pos from arm",slidePos);
         this.slideVelocity = (this.slidePos-lastPos)/(nanos/0.000000001);
+        this.tiltVelocity = (this.tiltPos-lastTilt)/(nanos/0.000000001);
         this.hasMoved = false;
 
     }
@@ -250,7 +252,13 @@ public class Arm {
         return this.slidePos;
     }
 
+    public double getTarget() {
+        return this.slideTarget;
+    }
+
     public double getVelocity() {return this.slideVelocity;}
+
+    public double getTiltVelocity() {return this.tiltVelocity;}
 
     /**
      * @return In degrees.

@@ -20,8 +20,8 @@ public class AutonomousWaypoint {
     /**
      * For points that need maximal precision (ex if you were scoring or crossing through trusses)
      */
-    public static double DEFAULT_TOLERANCE = 1;
-    public static double DEFAULT_HEADING_TOLERANCE = 0.2;
+    public static double DEFAULT_TOLERANCE = 0.5;
+    public static double DEFAULT_HEADING_TOLERANCE = 0.1;
     /**
      * For points that need less precision (ex a point that is a control point but not an end point on the path)
      */

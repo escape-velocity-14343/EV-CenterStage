@@ -26,7 +26,7 @@ public class Bucket {
 
     // TODO: empirically find all of these
     public static double latchPos = 0.7;
-    public static double unlatchPos = 0.2;
+    public static double unlatchPos = 0.1;
     public static double doublePixelPos = 0.3;
     public static double intakePos = 0.2;
     public static double outtakePos = 1;

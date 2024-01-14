@@ -4,6 +4,7 @@ import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACC
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ServoController;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraControls;
 
 public class CachingCRServo extends CachingDcMotorSimple implements CRServo {
 	private final CRServo crServo;

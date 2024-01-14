@@ -183,6 +183,9 @@ public class Odometry {
         double velo = getVelocity();
         return !(-moveTol < velo && velo < moveTol);
     }
+    public double getAnglularVelocity() {
+        return dh;
+    }
     public Pose2d getPose() {
         return new Pose2d(fx,fy,new Rotation2d(heading));
     }

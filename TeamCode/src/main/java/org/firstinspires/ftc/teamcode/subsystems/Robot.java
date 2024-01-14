@@ -11,13 +11,17 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingDcMotor;
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingServo;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 import org.firstinspires.ftc.teamcode.drivers.DashboardPacketTelemetry;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
@@ -51,7 +55,9 @@ public abstract class Robot extends LinearOpMode {
         FOLDED,
         IFOLD,
         NONE,
-        INIT
+        INIT,
+        HANG,
+        DRONE
 
     }
 
@@ -67,10 +73,15 @@ public abstract class Robot extends LinearOpMode {
         RETRACTED,
         TILTED
     }
+    private enum hangStates {
+        GROUND,
+        UP
+    }
 
     private states transferStates = states.NONE;
     private intakeStates intakeProgress = intakeStates.EXTENDED;
     private outtakeStates outtakeProgress = outtakeStates.EXTENDED;
+    private hangStates hangProgress = hangStates.GROUND;
     private boolean fsmIsDone = false;
 
     /**
@@ -120,12 +131,18 @@ public abstract class Robot extends LinearOpMode {
     private boolean disableAutoRetract = true;
     private int flipHeadingLock = 1;
     public static double MAX_TILT_CHANGE = 30;
+    public static double intakeLifterHeight = 0;
+    public DcMotor hang;
+    public Servo drone;
+    public static double droneTilt = 135;
 
 
 
 
 
     public void initialize() {
+        hang = new CachingDcMotor(hardwareMap.dcMotor.get("intake"));
+        drone = new CachingServo(hardwareMap.servo.get("drone"));
         allHubs = hardwareMap.getAll(LynxModule.class);
 
         for (LynxModule hub : allHubs) {
@@ -218,12 +235,12 @@ public abstract class Robot extends LinearOpMode {
                     case RETRACTED:
                         fsmIsDone = true;
                         arm.tiltArm(intakeTilt);
-                        if (arm.isTilted(1)) {
+                        if (arm.isTilted(3)) {
                             intakeProgress = intakeStates.TILTED;
                         }
                         break;
                     case TILTED:
-                        arm.setLifterHeight(0);
+                        arm.setLifterHeight(intakeLifterHeight);
                         // tilt if the arm is in a reasonable position to tilt
                         if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
                             arm.tiltArm(intakeTilt);
@@ -232,17 +249,21 @@ public abstract class Robot extends LinearOpMode {
                         bucket.smartLatch();
                         arm.extend(50);
                         if (arm.isDone(20)) {
+                            arm.moveTilt(0);
                             intakeProgress = intakeStates.DONE;
                         }
                         break;
                     case DONE:
-                        arm.outtakeLifter();
+                        if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
+                            arm.tiltArm(intakeTilt);
+                        }
+                        //arm.outtakeLifter();
                         // tilt if the arm is in a reasonable position to tilt
                         bucket.intake();
                         bucket.smartLatch();
-                        if (bucket.getNumPixels() == 2 && gamepad1c.left_trigger < 0.1 && gamepad1c.right_trigger < 0.1 && !disableAutoRetract) {
+                        if (bucket.getNumPixels()==2) {
                             gamepad1.rumble(50);
-                            arm.extend(10);
+
                         }
                         fsmIsDone = true;
                         break;
@@ -274,32 +295,37 @@ public abstract class Robot extends LinearOpMode {
                     case RETRACTED:
                         fsmIsDone = true;
                         safeGoToArmIVK();
-                        if (arm.isTilted(1)) {
+                        if (arm.isTilted(3)) {
                             outtakeProgress = outtakeStates.TILTED;
                         }
                         break;
                     case TILTED:
                         goToArmIVK();
-                        fsmIsDone = true; break;
+                        fsmIsDone = true;
+                        break;
                 }
                 break;
             case INIT:
-                bucket.intake(); break;
+                bucket.intake();
+                arm.setLifterHeight(0);
+                drone.setPosition(1);
+                break;
             case FOLDED:
-                bucket.tilt(0.6);
-                arm.extend(10);
-                if (arm.isDone(10)) {
+                bucket.tilt(0.7);
+                arm.setLifterHeight(0);
+                arm.extend(50);
+                if (arm.getPosition() < 100) {
                     arm.tiltArm(165);
-                }
-                if (arm.isDone(10) && arm.isTilted(1)) {
+                } else {
                     arm.moveTilt(0);
-                    arm.extend(10);
+                }
+                if (arm.isDone(20) && arm.isTilted(3)) {
                     fsmIsDone = true;
                 }
                 break;
             case IFOLD:
                 bucket.tilt(0.6);
-                arm.extend(10);
+                arm.extend(20);
                 if (arm.isDone(10)) {
                     arm.tiltArm(10);
                 }
@@ -309,7 +335,35 @@ public abstract class Robot extends LinearOpMode {
                     fsmIsDone = true;
                 }
                 break;
+            case HANG:
+                switch (hangProgress) {
+                    case GROUND:
+                        if (arm.getPosition() < 100) {
+                            arm.tiltArm(130);
+                        } else {
+                            arm.moveSlides(-0.7);
+                        }
+                        bucket.tilt(0);
+                        swerve.setAuton();
+                        break;
+                    case UP:
+                        arm.tiltArm(160);
+                        //arm.extend(0);
+                        bucket.tilt(0);
+                        swerve.setAuton();
+                }
+                break;
+            case DRONE:
+                if (arm.getPosition() < 100) {
+                    arm.tiltArm(droneTilt);
+                } else {
+                    arm.moveSlides(-0.7);
+                }
 
+
+        }
+        if (!inHang()) {
+            swerve.setNormal();
         }
         // if nothing else is happening, hold position
         //arm.holdPosition();
@@ -358,6 +412,23 @@ public abstract class Robot extends LinearOpMode {
     public void iFoldArm() {
         this.transferStates = states.IFOLD;
     }
+    public void hang() {
+        this.transferStates = states.HANG;
+        this.hangProgress = hangStates.GROUND;
+    }
+
+    public void drone() {
+        this.transferStates = states.DRONE;
+    }
+
+    /**
+     * we are flying
+     */
+    public void incrementHangState() {
+        if (inHang()) {
+            this.hangProgress = hangStates.UP;
+        }
+    }
 
     /**
      * Allows for manual control of the arm in the autonomous.
@@ -375,6 +446,13 @@ public abstract class Robot extends LinearOpMode {
     }
 
     public boolean inAuto() { return transferStates == states.AUTO; }
+    public boolean inHang() {
+        return transferStates == states.HANG;
+    }
+
+    public boolean inDrone() {
+        return transferStates == states.DRONE;
+    }
 
     public boolean isDone() {
         return fsmIsDone;
@@ -417,12 +495,82 @@ public abstract class Robot extends LinearOpMode {
         }
     }
 
+    enum sillyivk {
+        CLOSE,
+        AT
+    }
+
+    sillyivk silly = sillyivk.CLOSE;
+
+    /**
+     * WARNING: ONLY USE THIS FUNCTION WHEN GOING TO A INTAKE POSITION!!!
+     * @param tiltSlowdown
+     */
+    public void goToArmIVK(double tiltSlowdown) {
+        if (AngleUnit.normalizeDegrees(Math.abs(arm.getTilt() - ArmIVK.getArmAngle())) > MAX_TILT_CHANGE) {
+            safeGoToArmIVK();
+        } else {
+            arm.extend(ArmIVK.getSlideExtension());
+            switch (silly) {
+                case CLOSE:
+                    arm.tiltArm(ArmIVK.getArmAngle() + Math.signum(arm.getTilt() - ArmIVK.getArmAngle()) * tiltSlowdown);
+                    if (arm.isTilted(4) && arm.getTiltVelocity() < 1) {
+                        silly = sillyivk.AT;
+                    }
+                    break;
+                case AT:
+                    arm.tiltArm(ArmIVK.getArmAngle());
+                    if (AngleUnit.normalizeDegrees((arm.getTilt() - ArmIVK.getArmAngle())) > tiltSlowdown) {
+                        silly = sillyivk.CLOSE;
+                    }
+                    break;
+            }
+            bucket.tilt(ArmIVK.getBucketTilt());
+        }
+    }
+
+    enum safeGoToArmIVKFSM {
+        EXTENDED,
+        RETRACTED,
+        TILTED
+    }
+
+    safeGoToArmIVKFSM safeFSM = safeGoToArmIVKFSM.EXTENDED;
+
+    public void resetSafeGoToIVK() {
+        safeFSM = safeGoToArmIVKFSM.EXTENDED;
+    }
+
     public void safeGoToArmIVK() {
-        if (arm.getPosition() > 100 && !arm.isTilted(1)) {
-            arm.moveSlides(-1);
-            arm.moveTilt(0);
-            bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
-        } else if (!arm.isTilted(1)) {
+        if (arm.getPosition() > 100 && Math.abs(ArmIVK.getArmAngle() - arm.getTilt()) > 10) {
+            safeFSM = safeGoToArmIVKFSM.EXTENDED;
+        }
+        switch (safeFSM) {
+            case EXTENDED:
+                arm.moveSlides(-0.7);
+                arm.moveTilt(0);
+                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+                if (arm.getPosition() < 100) {
+                    safeFSM = safeGoToArmIVKFSM.RETRACTED;
+                }
+                break;
+            case RETRACTED:
+                arm.moveSlides(0);
+                arm.tiltArm(ArmIVK.getArmAngle());
+                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+                if (arm.isTilted(1) && arm.getTiltVelocity() < 0.2) {
+                    safeFSM = safeGoToArmIVKFSM.TILTED;
+                }
+                break;
+            case TILTED:
+                arm.tiltArm(ArmIVK.getArmAngle());
+                arm.extend(ArmIVK.getSlideExtension());
+                bucket.tilt(ArmIVK.getBucketTilt());
+                break;
+        }
+        /*if (arm.getPosition() > 100 && !arm.isTilted(10)) {
+
+        } else if (!arm.isTilted(1) || arm.getTiltVelocity() > 0.5) {
             arm.moveSlides(0);
             arm.tiltArm(ArmIVK.getArmAngle());
             bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
@@ -430,7 +578,13 @@ public abstract class Robot extends LinearOpMode {
             arm.tiltArm(ArmIVK.getArmAngle());
             arm.extend(ArmIVK.getSlideExtension());
             bucket.tilt(ArmIVK.getBucketTilt());
-        }
+        }*/
+    }
+
+    public void forceGoToArmIVK() {
+        arm.tiltArm(ArmIVK.getArmAngle());
+        arm.extend(ArmIVK.getSlideExtension());
+        bucket.tilt(ArmIVK.getBucketTilt());
     }
 
     /*
@@ -504,6 +658,10 @@ public abstract class Robot extends LinearOpMode {
      */
     public boolean swerveIsStalled() {
         return (swerve.isMoving() && !odometry.isMoving());
+    }
+    public static double stoppedAngularVelo = 0.0001;
+    public boolean isStoppedAtPoint() {
+        return atPoint()&&odometry.getAnglularVelocity()<stoppedAngularVelo;
     }
 }
 

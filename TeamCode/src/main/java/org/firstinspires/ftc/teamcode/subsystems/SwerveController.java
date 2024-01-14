@@ -81,6 +81,8 @@ public class SwerveController extends RobotDrive {
     // stall detection things
     private boolean isMoving = false;
     private double moveMinimum = 0.3;
+
+    private double moveMult = 1;
     // this gets reset when we stop moving (from swerve perspective)
     private ElapsedTime moveTimer = new ElapsedTime();
 
@@ -376,7 +378,7 @@ public class SwerveController extends RobotDrive {
         double move = poscontroller.calculate(dist, 0);
         double xmove = Math.sin(angle) * move;
         double ymove = Math.cos(angle) * move;
-        driveFieldCentric(ymove,-xmove, rot);
+        driveFieldCentric(ymove*moveMult,-xmove*moveMult, rot*moveMult);
     }
 
     public boolean atPoint(Pose2d robotpose) {
@@ -419,6 +421,10 @@ public class SwerveController extends RobotDrive {
 
     public boolean isMoving() {
         return (this.isMoving && moveTimer.nanoseconds() > MINIMUM_START_MOVEMENT_NANOS);
+    }
+
+    public void setVoltageCorrection(double voltage) {
+        this.moveMult = 13/voltage;
     }
     public double[] getRotations() {
         return new double[] {left.getRotation(),right.getRotation()};
