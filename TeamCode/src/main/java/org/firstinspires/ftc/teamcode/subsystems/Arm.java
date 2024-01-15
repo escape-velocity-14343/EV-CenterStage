@@ -40,7 +40,7 @@ public class Arm {
     private InterpLUT slidekS = new InterpLUT();
     public static double tiltP  = 0.02;
     public static double slideP = 0.0015;
-    public static double tiltOffset = 45;
+    public static double tiltOffset = 42;
     public static boolean reverseLifter = false;
     /**
      *

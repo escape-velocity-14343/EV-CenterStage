@@ -76,6 +76,13 @@ public class Bucket {
     public void latch() {
         leftLatch.setPosition(latchPos);
         rightLatch.setPosition(latchPos);
+
+
+
+
+
+
+
     }
 
     public void unlatch() {

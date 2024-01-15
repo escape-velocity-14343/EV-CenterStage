@@ -5,6 +5,7 @@ import android.util.Log;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.checkerframework.checker.units.qual.A;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -32,6 +33,7 @@ public class AutonomousWaypoint {
 
     private double tolerance = DEFAULT_TOLERANCE;
     private double headingTolerance = DEFAULT_HEADING_TOLERANCE;
+    private ElapsedTime timeout = new ElapsedTime();
 
     Point redBackstagePoint;
 
@@ -103,6 +105,9 @@ public class AutonomousWaypoint {
     public boolean isAtPoint(Pose2d robotpose) {
         Pose2d endpose = this.getPoint(robotpose).toPose2d();
         endpose = endpose.relativeTo(robotpose);
+        /*if (timeout.seconds() > 5) {
+            return true;
+        }*/
         if (Math.sqrt(Math.pow(endpose.getX(), 2) + Math.pow(endpose.getY(), 2)) < this.tolerance && Math.abs(endpose.getRotation().getRadians()) < this.headingTolerance) {
             return true;
         } else {
@@ -112,6 +117,7 @@ public class AutonomousWaypoint {
 
     public AutonomousWaypoint(double x, double y, double rot) {
         redBackstagePoint = new Point(x, y, rot);
+        timeout.reset();
     }
 
     public AutonomousWaypoint(double x, double y, double rot, boolean imprecise) {
@@ -120,6 +126,7 @@ public class AutonomousWaypoint {
             tolerance = DEFAULT_IMPRECISE_TOLERANCE;
             headingTolerance = DEFAULT_IMPRECISE_HEADING_TOLERANCE;
         }
+        timeout.reset();
     }
 
     /**
@@ -129,6 +136,7 @@ public class AutonomousWaypoint {
         turnToPoint = true;
         redBackstagePoint = new Point(x, y, 0);
         pointToTurnTo = point;
+        timeout.reset();
     }
 
     public AutonomousWaypoint(Point p) {
@@ -143,6 +151,7 @@ public class AutonomousWaypoint {
             tolerance = DEFAULT_IMPRECISE_TOLERANCE;
             headingTolerance = DEFAULT_IMPRECISE_HEADING_TOLERANCE;
         }
+        timeout.reset();
     }
 
     /**

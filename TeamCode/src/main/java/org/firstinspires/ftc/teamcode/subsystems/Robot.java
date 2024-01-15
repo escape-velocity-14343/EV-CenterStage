@@ -101,7 +101,7 @@ public abstract class Robot extends LinearOpMode {
     /**
      * PID Config.
      */
-    public static double kHeadingP = 0.05;
+    public static double kHeadingP = 0.15;
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
 
@@ -126,7 +126,7 @@ public abstract class Robot extends LinearOpMode {
      * FSM values.
      */
     private double lastArmIVKHeight = 0;
-    private double lastArmIVKDistance = 0;
+    private double lastArmIVKDistance = -0;
     private double intakeTilt = 0;
     private boolean disableAutoRetract = true;
     private int flipHeadingLock = 1;
@@ -313,9 +313,9 @@ public abstract class Robot extends LinearOpMode {
             case FOLDED:
                 bucket.tilt(0.7);
                 arm.setLifterHeight(0);
-                arm.extend(50);
+                arm.extend(20);
                 if (arm.getPosition() < 100) {
-                    arm.tiltArm(165);
+                    arm.tiltArm(168);
                 } else {
                     arm.moveTilt(0);
                 }

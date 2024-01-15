@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.Range;
@@ -7,11 +8,13 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
 
 
+@Config
 @TeleOp(name="Comp TeleOp")
 public class CompTele extends Robot {
 
     Gamepad lastgamepad1c = new Gamepad();
     Gamepad lastgamepad2c = new Gamepad();
+    public static double intakeTilt = 4;
 
     @Override
     public void runOpMode() {
@@ -120,13 +123,17 @@ public class CompTele extends Robot {
             }
             if (gamepad1c.right_bumper) {
                 intake();
-                setIntake(1);
+                setIntake(intakeTilt);
             }
             if (gamepad1c.left_bumper) {
                 bucket.latch();
             }
             if (gamepad1c.touchpad) {
-                foldArm();
+                if (inIntake()) {
+                    iFoldArm();
+                } else {
+                    foldArm();
+                }
             }
             if (gamepad1c.dpad_down && !inHang()) {
                 hang();
@@ -146,7 +153,7 @@ public class CompTele extends Robot {
             telemetry.addData("left prox", bucket.getLeftDist());
             telemetry.addData("right prox", bucket.getRightDist());
 
-            // overrides
+            //
             if (gamepad2c.left_stick_button && !lastgamepad2c.left_stick_button) {
                 setAutoLatch(false);
             }

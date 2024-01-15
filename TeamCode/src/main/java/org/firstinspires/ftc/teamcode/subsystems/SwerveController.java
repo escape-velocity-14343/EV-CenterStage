@@ -227,7 +227,7 @@ public class SwerveController extends RobotDrive {
                     rotMode = rotationMode.LOCKLESS;
                     break;
                 }
-                headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
+                /*headingPID.setPID(p, Robot.kHeadingI, Robot.kHeadingD);
                 headingPID.setSetPoint(AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 telemetry.addData("set point", AngleUnit.normalizeDegrees(Math.toDegrees(headingLockAngle - botHeading)));
                 if (!runIQID) {
@@ -235,7 +235,7 @@ public class SwerveController extends RobotDrive {
                 } else {
                     rot = -headingIQID.calculateSQRT(botHeading);
                 }
-                telemetry.addData("rot", rot);
+                telemetry.addData("rot", rot);*/
                 break;
             case LOCKLESS:
                 // if no joystick input and no change in heading, state transition & set anglelock
@@ -283,12 +283,12 @@ public class SwerveController extends RobotDrive {
      * @param angle In Radians.
      */
     public void headingLock(boolean lock, double angle) {
-        if (lock) {
+        /*if (lock) {
             rotMode = rotationMode.HEADING_LOCK;
         } else {
             rotMode = rotationMode.PSUEDO_LOCK;
         }
-        headingLockAngle = angle * (autonFlipHeading?-1:1);
+        headingLockAngle = angle * (autonFlipHeading?-1:1);*/
     }
 
     /**

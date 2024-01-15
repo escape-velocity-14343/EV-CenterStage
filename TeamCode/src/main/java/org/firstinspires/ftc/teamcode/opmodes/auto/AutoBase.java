@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.opmodes.auto;
 import android.util.Log;
 import android.util.Size;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
@@ -10,6 +11,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.WhiteBalanceControl;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -48,18 +50,20 @@ public abstract class AutoBase extends Robot {
     public static AutonomousWaypoint middleStack = new AutonomousWaypoint(-70.5, -24, 0);
     public static AutonomousWaypoint farStack = new AutonomousWaypoint(-70.5, -12, 0);
 
-    public static AutonomousWaypoint farBackdropDrop = new AutonomousWaypoint(64.5, -32, 0);
-    public static AutonomousWaypoint middleBackdropDrop = new AutonomousWaypoint(64.5, -39, 0);
-    public static AutonomousWaypoint closeBackdropDrop = new AutonomousWaypoint(64.5, -43.5, 0);
+    public static AutonomousWaypoint farBackdropDrop = new AutonomousWaypoint(64.5, -32, 0)
+            .setBlueOffset(0, -5, 0);
+    public static AutonomousWaypoint middleBackdropDrop = new AutonomousWaypoint(64.5, -39, 0)
+            .setBlueOffset(0, -5, 0);
+    public static AutonomousWaypoint closeBackdropDrop = new AutonomousWaypoint(64.5, -43.5, 0)
+            .setBlueOffset(0, -5, 0);
 
-    public static AutonomousWaypoint audiencePurpleDrop = new AutonomousWaypoint(0.5, -30, 0)
+    public static AutonomousWaypoint audiencePurpleDrop = new AutonomousWaypoint(0.5, -33, 0)
             .setAudienceOffset(-48, 0, 0);
-
 
     public static AutonomousWaypoint centerPurpleDrop = new AutonomousWaypoint(14, -24.5, 0)
             .setAudienceOffset(-50, 0, 0);
 
-    public static AutonomousWaypoint backstagePurpleDrop = new AutonomousWaypoint(23.5, -38, 0)
+    public static AutonomousWaypoint backstagePurpleDrop = new AutonomousWaypoint(23.5, -30, 0)
             .setAudienceOffset(-48, 0, 0);
     public static double yellowHeightOffset = 2;
     public static double yellowDistOffset = 0;
@@ -68,12 +72,13 @@ public abstract class AutoBase extends Robot {
     public static double intakeLifterHeight = 24;
     public static double firstStackPickupBackOffset = 17;
     public static double purpleBackstageStartAudienceCaseBackOffset = 21;
-    public static double stackFirstHeight = 2;
+    public static double stackFirstHeight = 2.3   ;
     public static double STACK_PICKUP_ONE_PROX = 50;
     public static double perPixelStackHeightDecrement = 0.5;
     public static double perCycleDropHeightIncrement = 3;
     public static double cycleSlideOffset = -17;
     public static boolean cycle = false;
+    public static int cameraWBtemp = 3000;
     //public static propPositions propPos = propPositions.CENTER;
 
 
@@ -298,12 +303,14 @@ public abstract class AutoBase extends Robot {
                 if (arm.getPosition() > 100) {
                     arm.moveSlides(-1);
                 } else {
-                    arm.moveSlides(0);
+                    arm.tiltArm(173);
+                    arm.extendInches(3);
+                    bucket.tilt(1);
                     // point towards purple drop
-                    goToPoint(new AutonomousWaypoint(36, -36, audiencePurpleDrop)
-                                    .setAudienceOffset(-72, 0, 0)
+                    goToPoint(new AutonomousWaypoint(14, -36, audiencePurpleDrop)
+                                    .setAudienceOffset(-72, 0, 0));
                             //.setBlueAudienceOffset(-48, 0, 0)
-                            .setRotationOffset(Math.PI));
+                            //.setRotationOffset(Math.PI));
                     if (atPoint()) {
                         //intake();
                         setState(111);
@@ -311,27 +318,23 @@ public abstract class AutoBase extends Robot {
                 }
                 // move, tilt arm & drop
             } else if (state == 111) {
-                swerve.stop();
-                //arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop));
-                arm.tiltArm(0);
-                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(150),0));
-                if (arm.isTilted(2)) {
-                    //setFSMtoAuto();
-                    //arm.moveTilt(0);
-                    arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop)-purpleBackstageStartAudienceCaseBackOffset);
-                    telemetry.addData("arm target", arm.getTarget());
-                    if ((arm.isDone(15) && arm.getVelocity() < 0.001)||timer.seconds()>3) {
-                        bucket.setRightLatch(false);
-                        setState(112);
-                    }
-                } else {
-                    arm.moveSlides(0);
+                arm.tiltArm(173);
+                arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop)-4);
+                bucket.tilt(1);
+                goToPoint(new AutonomousWaypoint(14, -36, audiencePurpleDrop)
+                        .setTolerances(0.7, -0.1)
+                        .setAudienceOffset(-50, 0, 0));
+                if (arm.isDone(15)||timer.seconds()>2) {
+                    setState(112);
                 }
                 // pause and transition
             } else if (state == 112) {
+                if (arm.getVelocity() < 0.001) {
+                    bucket.setRightLatch(false);
+                }
                 if (timer.seconds() > PURPLE_PIXEL_DROP_TIME) {
-                    bucket.tilt(0);
-                    setState(350, 360);
+                    bucket.setRightLatch(false);
+                    setState(350);
                 }
             }
             // audience start audience prop
@@ -389,6 +392,10 @@ public abstract class AutoBase extends Robot {
                 );
                 if (isStoppedAtPoint()) {
                     setState(361);
+                }
+                if (timer.seconds() > 5) {
+                    foldArm();
+                    setState(365);
                 }
             }
             else if (state == 361) {
@@ -459,6 +466,9 @@ public abstract class AutoBase extends Robot {
                 if (atPoint()) {
                     setState(290);
                 }
+                if (timer.seconds() > 4) {
+                    requestOpModeStop();
+                }
             } else if (state == 370) {
                 //setFSMtoAuto();
                 //arm.tiltArm(10);
@@ -468,6 +478,11 @@ public abstract class AutoBase extends Robot {
                 );
                 if (isStoppedAtPoint()) {
                     setState(371);
+                }
+                if (timer.seconds() > 5) {
+                    foldArm();
+                    setState(365);
+
                 }
             }
             else if (state == 371) {
@@ -907,7 +922,7 @@ public abstract class AutoBase extends Robot {
                     setState(911);
                 }
             } else if (state == 911) {
-                goToPoint(new AutonomousWaypoint(50, -12, 0));
+                goToPoint(new AutonomousWaypoint(50, -60, 0));
                 if (atPoint() || timer.seconds() > 5) {
                     requestOpModeStop();
                 }
@@ -998,6 +1013,7 @@ public abstract class AutoBase extends Robot {
         // Set the stream format; MJPEG uses less bandwidth than default YUY2.
         builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
 
+
         // Choose whether or not LiveView stops if no processors are enabled.
         // If set "true", monitor shows solid orange screen if no processors enabled.
         // If set "false", monitor shows camera view without annotations.
@@ -1008,10 +1024,16 @@ public abstract class AutoBase extends Robot {
         }
 
         propPortal = builder.build();
+
         for (VisionProcessor processor : processors) {
             propPortal.setProcessorEnabled(processor, true);
         }
+        //FtcDashboard.getInstance().startCameraStream(propProcessor,0);
 
+    }
+    public void setWB(int temp) {
+        propPortal.getCameraControl(WhiteBalanceControl.class).setWhiteBalanceTemperature(temp);
+        propPortal.getCameraControl(WhiteBalanceControl.class).setMode(WhiteBalanceControl.Mode.MANUAL);
     }
 
     public void updatePropDetection() {
