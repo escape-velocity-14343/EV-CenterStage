@@ -2,6 +2,12 @@ package org.firstinspires.ftc.teamcode.controllers;
 
 import com.qualcomm.robotcore.util.Range;
 
+/**
+ * A self-adapting static gain. Works as follows:
+ * If the system is not moving and also not done, the static gain will be incremented.
+ * If the system is overshooting (the sign of the error changes), the static gain will be decremented.
+ * This ensures automatic and robust tuning, regardless of field condition.
+ */
 public class AdaptableStaticGain {
     /**
      * The static gain.
@@ -61,6 +67,12 @@ public class AdaptableStaticGain {
         }
         kStatic = Range.clip(kStatic, minGain, maxGain);
         lastError = error;
+    }
+
+    public void update(double pv, double sp, double tolerance) {
+        if (Math.abs(sp-pv) > tolerance) {
+            this.update(pv, sp);
+        }
     }
 
     public void update(double pv, double sp) {
