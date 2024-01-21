@@ -61,9 +61,11 @@ public class TeamPropProcessor implements VisionProcessor {
     private Mat HSV = new Mat();
     private Mat thres1 = new Mat();
     private Mat thres2 = new Mat();
+    private Mat correctedMat = new Mat();
     private Rect leftrect;
     private Rect midrect;
     private Rect rightrect;
+    private Rect fieldrect;
 
     private Integer placement = 1;
 
@@ -88,6 +90,10 @@ public class TeamPropProcessor implements VisionProcessor {
     public static int blueLeftOffset = -40;
     public static int blueMiddleOffset = -20;
     public static int blueRightOffset = -10;
+    public static int fieldX = 0;
+    public static int fieldY = 0;
+    public static int fieldCenterX = 0;
+    public static int fieldCenterY = 0;
     public static int blueHue = 110;
     public static int redHue = 10;
     public static int redHue2 = 170;
@@ -100,6 +106,7 @@ public class TeamPropProcessor implements VisionProcessor {
     public static int satorvalue = 1;
     Mat ouput = new Mat();
     public static int greenoffset = 0;
+    public static boolean correctForField = true;
     Bitmap bitmpaa;
 
     public TeamPropProcessor(boolean team) {
@@ -122,7 +129,7 @@ public class TeamPropProcessor implements VisionProcessor {
 
         //if (team == TeamPropProcessor.BLUE) {
 
-         Imgproc.cvtColor(ouput, HSV, Imgproc.COLOR_RGB2HSV);
+
          /*if (useHueThreshold) {
             if (!team) {
                 Core.inRange(HSV, blueMin,blueMax,thres1);
@@ -140,7 +147,18 @@ public class TeamPropProcessor implements VisionProcessor {
             leftrect = new Rect(new Point(leftCenterX/2 + blueLeftOffset*(this.team==RED?0:1),leftCenterY/2),new Size (leftX/2,leftY/2));
             midrect = new Rect(new Point(midCenterX/2 + blueMiddleOffset*(this.team==RED?0:1),midCenterY/2),new Size (midX/2,midY/2));
             rightrect = new Rect(new Point(rightCenterX/2 + blueRightOffset*(this.team==RED?0:1),rightCenterY/2),new Size (rightX/2,rightY/2));
+            fieldrect = new Rect(new Point(fieldCenterX/2, fieldCenterY/2), new Size(fieldX/2, fieldY/2));
 
+            input.copyTo(correctedMat);
+
+            // subtract field rgb
+            if (correctForField) {
+                Mat fieldMat = correctedMat.submat(fieldrect);
+                Scalar avgfield = Core.mean(fieldMat);
+                Core.subtract(correctedMat, avgfield, correctedMat);
+            }
+
+            Imgproc.cvtColor(correctedMat, HSV, Imgproc.COLOR_RGB2HSV);
 
 
 
@@ -181,6 +199,7 @@ public class TeamPropProcessor implements VisionProcessor {
             Imgproc.rectangle(ouput,leftrect,white,2);
             Imgproc.rectangle(ouput,midrect,white,2);
             Imgproc.rectangle(ouput,rightrect,white,2);
+            Imgproc.rectangle(ouput, fieldrect, new Scalar(255, 0, 0), 2);
             if (leftavg > midavg && leftavg > rightavg) {
                 Imgproc.rectangle(ouput,leftrect,Core.mean(leftMat));
                 placement = 0;
@@ -261,6 +280,9 @@ public class TeamPropProcessor implements VisionProcessor {
                 canvas.drawRect(toGraphicsRect(rightrect, scaleBmpPxToCanvasPx), rectPaint);
                 break;
         }
+
+        rectPaint.setColor(Color.CYAN);
+        canvas.drawRect(toGraphicsRect(fieldrect, scaleBmpPxToCanvasPx), rectPaint);
 
     }
 
