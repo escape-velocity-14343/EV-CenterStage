@@ -9,6 +9,8 @@ import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -19,10 +21,11 @@ import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 public class Odometry {
     ToggleTelemetry telemetry;
     DashboardPacketTelemetry fieldtelem;
-    DcMotor xE, yE;
-    double fx,fy,dx,dy,heading,dh; //heading radians
+    DcMotor xE, xE2, yE;
+    IMU imu;
+    double fx,fy,dx, dx2, dc, dy,heading,dh; //heading radians
     double dxTotal, dyTotal;
-    double lastHeading=0, lastx=0, lasty=0;
+    double lastHeading=0, lastx=0, lasty=0, lastx2=0;
     Canvas field = new Canvas();
     TelemetryPacket packet = new TelemetryPacket();
     double targetx=-10000, targety=-10000;
@@ -34,9 +37,15 @@ public class Odometry {
     public static double Y_ROTATE = 6.11536953336;
     public static boolean reverseX = false;
     public static boolean reverseY = false;
+    public static boolean reverseHeading = false;
+    public static boolean usePersistent = false;
+    public static double persistentSeconds = 1;
+    private ElapsedTime persistentTimer = new ElapsedTime();
+    public static double trackwidth = 10;
 
     private long lastLoopNanos = 1;
     private boolean hasRun = false;
+
 
 
     public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
@@ -49,6 +58,8 @@ public class Odometry {
         yE = hMap.dcMotor.get("topright");
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        imu = hMap.get(IMU.class, "imu 1");
         while(fx!=0)
             reset();
 
@@ -59,6 +70,10 @@ public class Odometry {
         targetx = x;
         targety = y;
     }
+
+    /**
+     * 2 wheel update function
+     */
     public void update(double botHeading, long loopNanos) {
 
         lastLoopNanos = loopNanos;
@@ -115,12 +130,97 @@ public class Odometry {
         //telemetry.put("time", System.currentTimeMillis());
 
     }
+
+    /**
+     * 3 wheel update function
+     * @param loopNanos
+     */
+    public void update(long loopNanos) {
+        lastLoopNanos = loopNanos;
+
+        int xEnc = xE.getCurrentPosition();
+        int xEnc2 = xE2.getCurrentPosition();
+        int yEnc = yE.getCurrentPosition();
+
+        dx = (xEnc-lastx)/TICKS_PER_INCH;
+        dx2 = (xEnc2-lastx2)/TICKS_PER_INCH;
+
+
+        dh = (dx - dx2) / trackwidth;
+
+
+
+        dc = (dx2 + dx) / 2;
+
+        // fix inexact angles
+        if (!hasRun) {
+            dh = 0;
+            hasRun = true;
+        }
+
+        dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
+
+        if (reverseX) {
+            dx*=-1;
+            dx2*=-1;
+        }
+        if (reverseY) {
+            dy*=-1;
+        }
+        if (reverseHeading) {
+            dh *= -1;
+        }
+        // TODO: make this not as bad lol
+        dx = dc;
+
+        dxTotal += dx;
+        dyTotal +=dy;
+        heading = lastHeading + dh;
+        fx += dx * Math.cos(heading) - dy * Math.sin(heading);
+        fy += dx * Math.sin(heading) + dy * Math.cos(heading);
+        lastHeading = heading;
+        lastx = xEnc;
+        lastx2 = xEnc2;
+        lasty = yEnc;
+        TelemetryPacket packet = new TelemetryPacket();
+        field = packet.fieldOverlay();
+        int robotRadius = 8;
+        field.strokeCircle(fx, fy, robotRadius);
+        double arrowX = new Rotation2d(heading).getCos() * robotRadius, arrowY = new Rotation2d(heading).getSin() * robotRadius;
+        double x1 = fx, y1 = fy;
+        double x2 = fx + arrowX, y2 = fy+ arrowY;
+        field.strokeLine(x1, y1, x2, y2);
+        field.setFill("yellow");
+        field.setStroke("yellow");
+        field.fillCircle(targetx, targety, 2);
+        field.strokeLine(x1, y1, x1+targetx2, y1+targety2);
+        if (!Robot.useDashTelemetry) {
+            FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        }
+
+        if (persistentTimer.seconds() > persistentSeconds && usePersistent) {
+            lastHeading =
+        }
+
+
+        telemetry.addData("xenc", xE.getCurrentPosition());
+        telemetry.addData("yenc", yE.getCurrentPosition());
+        telemetry.addData("dx", getDx());
+        telemetry.addData("dy",getDy());
+
+        telemetry.addData("pose x", getPose().getX());
+        telemetry.addData("pose y", getPose().getY());
+        telemetry.addData("total dx", dxTotal);
+        telemetry.addData("total dy", dyTotal);
+    }
+
     public void reset() {
         xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
+        dx2=0;
         dy=0;
         dh=0;
         dxTotal=0;
@@ -129,6 +229,7 @@ public class Odometry {
         fy=0;
         lastHeading = 0;
         lastx = 0;
+        lastx2 = 0;
         lasty = 0;
 
     }
@@ -138,6 +239,7 @@ public class Odometry {
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
+        dx2=0;
         dy=0;
         dh=0;
         dxTotal=0;
@@ -146,6 +248,7 @@ public class Odometry {
         fy=y;
         lastHeading = 0;
         lastx = 0;
+        lastx2 = 0;
         lasty = 0;
     }
 

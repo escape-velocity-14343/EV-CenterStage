@@ -71,6 +71,11 @@ public class CompTele extends Robot {
                 if (gamepad1c.circle&&!lastgamepad1c.circle) {
                     bucket.setRightLatch(!bucket.rightIsLatched());
                 }
+                if (gamepad2c.left_trigger > 0) {
+                    arm.moveTilt(-gamepad2c.left_trigger);
+                } else if (gamepad2c.right_trigger > 0) {
+                    arm.moveTilt(gamepad2c.right_trigger);
+                }
             }
 
             if (inHang()) {

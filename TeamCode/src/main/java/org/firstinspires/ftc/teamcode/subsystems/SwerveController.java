@@ -19,6 +19,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
+import org.firstinspires.ftc.teamcode.controllers.SquIDF;
 import org.firstinspires.ftc.teamcode.drivers.AnalogEncoder;
 import org.firstinspires.ftc.teamcode.drivers.ToggleTelemetry;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
@@ -68,8 +69,8 @@ public class SwerveController extends RobotDrive {
 
     double lastHeading = 0;
     PIDController headingPID  = new PIDController(0,0,0);
-    SquIDController headingIQID = new SquIDController(0, 0, 0);
-    SquIDController poscontroller = new SquIDController(Robot.kPosQ, Robot.kPosI, Robot.kPosD);
+    SquIDF headingIQID = new SquIDF(0, 0, 0, Robot.kHeadingF, Robot.headingInc, Robot.headingDec);
+    SquIDF poscontroller = new SquIDF(Robot.kPosQ, Robot.kPosI, Robot.kPosD, 0, 0.05, 1);
 
     double voltageLimit = 0;
 
@@ -108,6 +109,11 @@ public class SwerveController extends RobotDrive {
         right.setOffset(rOffset);
         this.robot = robot;
         voltageSensor = robot.voltageSensor;
+
+        this.headingIQID.setFeedforwardTolerance(Robot.headingTol);
+        this.headingIQID.setFeedforwardBounds(0, 0.5);
+        this.poscontroller.setFeedforwardTolerance(0.0000001);
+        this.poscontroller.setFeedforwardBounds(0, 0.5);
     }
     private void drive(double x, double y, double rot, double botHeading) {
         left.setOffset(lOffset); //TODO: fix swerve pod
@@ -346,6 +352,9 @@ public class SwerveController extends RobotDrive {
         this.runIQID = runIQID;
     }
 
+    public double lastAngle = 0;
+
+
     private AutonomousWaypoint targetWaypoint;
     public void driveTo(Pose2d robotPose, Pose2d robotVelocity, AutonomousWaypoint endWaypoint, Odometry odometry) {
         // move robot by last velocity * multiplier
@@ -363,10 +372,11 @@ public class SwerveController extends RobotDrive {
         double rot = endPose.getRotation().getRadians();*/
         double rot = AngleUnit.normalizeRadians(endPose.getRotation().getRadians() - robotPose.getRotation().getRadians());
         if (runIQID) {
-            rot = headingIQID.calculate(rot, 0);
+            rot = headingIQID.calculate(rot, 0, Math.toRadians(1));
         } else {
             rot = headingPID.calculate(rot, 0);
         }
+        telemetry.addData("intended rotation", rot);
         /*odometry.targetx2 = 30 * mag * Math.cos(arg);
         odometry.targety2 = 30 * mag * Math.sin(arg);
         //odometry.setTarget(30 * mag * Math.cos(arg), 30 * mag * Math.sin(arg));
@@ -375,7 +385,13 @@ public class SwerveController extends RobotDrive {
         double yErr = endPose.getY() - robotPose.getY();
         double dist = Math.sqrt(xErr*xErr+yErr*yErr);
         double angle = Math.atan2(xErr,-yErr);
-        double move = poscontroller.calculate(dist, 0);
+        double move = poscontroller.calculate(dist, 0, 0.5);
+        if (Math.abs(AngleUnit.normalizeRadians(angle-lastAngle)) > Math.PI/2 && dist > 0.5) {
+            poscontroller.forceDecrement();
+        } else if (dist > 0.5) {
+            lastAngle = angle;
+        }
+        telemetry.addData("intended move", move);
         double xmove = Math.sin(angle) * move;
         double ymove = Math.cos(angle) * move;
         driveFieldCentric(ymove*moveMult,-xmove*moveMult, rot*moveMult);

@@ -52,8 +52,10 @@ public class Bucket {
      */
     public void update() {
 
-        leftprox = leftSensor.getProximity();
-        rightprox = rightSensor.getProximity();
+       // leftprox = leftSensor.getProximity();
+       // rightprox = rightSensor.getProximity();
+        leftprox = 0;
+        rightprox = 0;
         leftHasPixels = leftprox < intakeMaxProx;
         rightHasPixels = rightprox < intakeMaxProx;
         if (!leftHasPixels) {

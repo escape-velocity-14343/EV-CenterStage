@@ -20,8 +20,9 @@ public class ArmIVK {
     public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
     public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.5;
     public static double LIFTER_LENGTH = 3.3464;
+    public static double MAX_LIFTER_TILT_RADIANS = 5.175414359;
 
-    public static double LIFTER_OFFSET_TO_ZERO = 0.1;
+    public static double LIFTER_OFFSET_TO_ZERO = 0.65;
     public static double LIFTER_DOWNWARD_OFFSET = 0;
     public static double MAX_ARM_EXTENSION_INCHES = 100;
     public static double ARM_START_OFFSET_INCHES = -5.5;

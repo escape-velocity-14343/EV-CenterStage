@@ -44,7 +44,7 @@ public abstract class Robot extends LinearOpMode {
     public Arm arm;
     public Bucket bucket;
     public Odometry odometry;
-    public IMU imu;
+    //public IMU imu;
     public List<LynxModule> allHubs;
     public VoltageSensor voltageSensor;
 
@@ -101,9 +101,13 @@ public abstract class Robot extends LinearOpMode {
     /**
      * PID Config.
      */
-    public static double kHeadingP = 0.15;
+    public static double kHeadingP = 0.07;
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
+    public static double kHeadingF = 0.05;
+    public static double headingInc = 0.05;
+    public static double headingDec = 1;
+    public static double headingTol = 0.1;
 
     public static double kPosQ = 0.01;
     public static double kPosI = 0;
@@ -166,23 +170,25 @@ public abstract class Robot extends LinearOpMode {
 
         calcArmIVK(10, 0);
 
-        imu = hardwareMap.get(IMU.class, "imu 1");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
-        imu.initialize(parameters);
+        //imu = hardwareMap.get(IMU.class, "imu 1");
+        //IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
+        //imu.initialize(parameters);
+
+        initialNanos = timer.nanoseconds();
 
 
     }
 
     public void readIMU() {
-        imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+    //    imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
 
     public void setPoseEstimate(Pose2d pose) {
         if (opModeInInit()) {
             readIMU();
         }
-        Log.println(Log.INFO, "heading", "imu reading: " + imuReading);
-        headingOffset = pose.getRotation().getRadians()-imuReading;
+        //Log.println(Log.INFO, "heading", "imu reading: " + imuReading);
+        //headingOffset = pose.getRotation().getRadians()-imuReading;
         odometry.reset(pose.getX(), pose.getY(), getHeading());
 
     }
@@ -191,30 +197,46 @@ public abstract class Robot extends LinearOpMode {
      * USE THIS FUNCTION WHENEVER YOU WANT TO GET A BOT HEADING OR USE BOTHEADING. DO NOT USE THE IMU.
      */
     public double getHeading() {
-        botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
-        return botHeading;
+
+        //botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
+        return odometry.getPose().getRotation().getRadians();
     }
 
+    private int loops = 0;
+    private long initialNanos = 0;
+
     public void update() {
+        loops++;
         for (LynxModule hub : allHubs) {
             hub.clearBulkCache();
         }
+        loopNanos = timer.nanoseconds() - lastLoopNanos;
+        lastLoopNanos = timer.nanoseconds();
+        telemetry.addData("actual looptime", loopNanos/1e6);
+        telemetry.addData("average looptimes", (lastLoopNanos-initialNanos)/(loops*1e6));
+
         gamepad1c.copy(gamepad1);
         gamepad2c.copy(gamepad2);
         imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        telemetry.addData("imu looptime", (timer.nanoseconds() - lastLoopNanos)/1e6);
         telemetry.addData("imu reading", imuReading);
         telemetry.addData("heading offset", headingOffset);
-        telemetry.addData("voltage", voltageSensor.getVoltage());
+        //telemetry.addData("voltage", voltageSensor.getVoltage());
         botHeading = getHeading();
 
-        loopNanos = timer.nanoseconds() - lastLoopNanos;
-        lastLoopNanos = timer.nanoseconds();
 
+        long botheadingread = timer.nanoseconds();
         odometry.update(botHeading, loopNanos);
+        telemetry.addData("odometry looptime", (timer.nanoseconds() - botheadingread)/1e6);
+
+        long miscread = timer.nanoseconds();
         arm.update(loopNanos);
         bucket.update();
         telemetry.addData("slide pos", arm.getPosition());
         telemetry.addData("arm velo", arm.getVelocity());
+        telemetry.addData("misc looptime", (timer.nanoseconds() - miscread)/1e6);
+
+        long fsmread = timer.nanoseconds();
 
 
         fsmIsDone = false;
@@ -258,6 +280,7 @@ public abstract class Robot extends LinearOpMode {
                             arm.tiltArm(intakeTilt);
                         }
                         //arm.outtakeLifter();
+                        arm.setLifterHeight(intakeLifterHeight);
                         // tilt if the arm is in a reasonable position to tilt
                         bucket.intake();
                         bucket.smartLatch();
@@ -367,6 +390,7 @@ public abstract class Robot extends LinearOpMode {
         }
         // if nothing else is happening, hold position
         //arm.holdPosition();
+        telemetry.addData("fsm looptimes", (timer.nanoseconds() - fsmread)/1e6);
 
         telemetry.update();
 
@@ -384,6 +408,9 @@ public abstract class Robot extends LinearOpMode {
 
     public void setIntake(double tilt) {
         this.intakeTilt = tilt;
+    }
+    public double getIntakeTilt() {
+        return this.intakeTilt;
     }
 
     public void setAutoLatch(boolean active) {

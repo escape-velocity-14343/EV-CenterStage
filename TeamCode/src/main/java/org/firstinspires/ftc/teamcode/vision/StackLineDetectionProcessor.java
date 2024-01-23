@@ -25,10 +25,10 @@ public class StackLineDetectionProcessor implements VisionProcessor {
     private int height;
 
     private int startCol = 0;
-    private int endCol = 0;
+    private int endCol = 10;
 
 
-    Mat HSV;
+    Mat HSV = new Mat();
 
     public void init(int width, int height, CameraCalibration calib) {
         Log.println(Log.INFO, "weeee", "states lighting better not screw this up");
@@ -37,42 +37,46 @@ public class StackLineDetectionProcessor implements VisionProcessor {
     }
 
     public Object processFrame(Mat frame, long captureTimeNanos) {
-        // convert to HSV
-        Imgproc.cvtColor(frame, HSV, Imgproc.COLOR_RGB2HSV);
 
-        // get the row
-        Mat HSVsub = HSV.submat(new Range(row, row+1), Range.all());
+        try {
+            // convert to HSV
+            Imgproc.cvtColor(frame, HSV, Imgproc.COLOR_RGB2HSV);
 
-        // subtract the average of the single row
-        double avg = Core.mean(HSVsub).val[2];
-        Core.subtract(HSVsub, new Scalar(0, 0, avg), HSVsub);
+            // get the row
+            Mat HSVsub = HSV.submat(new Range(row, row + 1), Range.all());
 
-        // run kadane's algorithm
-        double sum = 0;
-        int tail = 0; // inclusive
-        int head = 0; // exclusive
-        double maxSum = 0;
-        int maxTail = 0; // inclusive
-        int maxHead = 0; // exclusive
+            // subtract the average of the single row
+            double avg = Core.mean(HSVsub).val[2];
 
-        for (int col = 0; col < width; col++) {
-            double val = HSVsub.get(0, col)[2];
-            sum += val;
-            head++;
-            if (sum > maxSum) {
-                maxSum = sum;
-                maxTail = tail;
-                maxHead = head;
+            // run kadane's algorithm
+            double sum = 0;
+            int tail = 0; // inclusive
+            int head = 0; // exclusive
+            double maxSum = 0;
+            int maxTail = 0; // inclusive
+            int maxHead = 0; // exclusive
+
+            for (int col = 0; col < width; col++) {
+                double val = HSVsub.get(0, col)[2];
+                sum += val - avg;
+                head++;
+                if (sum > maxSum) {
+                    maxSum = sum;
+                    maxTail = tail;
+                    maxHead = head;
+                }
+                if (sum < 0) {
+                    sum = 0;
+                    tail = head;
+                }
+
             }
-            if (sum < 0) {
-                sum = 0;
-                tail = head;
-            }
+
+            startCol = maxTail;
+            endCol = maxHead;
+        } catch (Exception e) {
 
         }
-
-        startCol = maxTail;
-        endCol = maxHead;
 
         return null;
 
@@ -89,7 +93,7 @@ public class StackLineDetectionProcessor implements VisionProcessor {
         rectPaint.setStyle(Paint.Style.STROKE);
         rectPaint.setStrokeWidth(scaleCanvasDensity * 4);
 
-        canvas.drawRect(toGraphicsRect(new Rect(startCol, 0, endCol-startCol, height), scaleBmpPxToCanvasPx), rectPaint);
+        canvas.drawRect(toGraphicsRect(new Rect(startCol, row-10, endCol-startCol, 20), scaleBmpPxToCanvasPx), rectPaint);
     }
 
     private android.graphics.Rect toGraphicsRect(Rect rect, float scaleBmpPxToCanvasPx) {

@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.teamcode.opmodes.testing.CycleTest;
 import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 import org.firstinspires.ftc.teamcode.pathutils.Point;
 import org.firstinspires.ftc.teamcode.subsystems.ArmIVK;
@@ -60,7 +61,7 @@ public abstract class AutoBase extends Robot {
     public static AutonomousWaypoint audiencePurpleDrop = new AutonomousWaypoint(0.5, -33, 0)
             .setAudienceOffset(-48, 0, 0);
 
-    public static AutonomousWaypoint centerPurpleDrop = new AutonomousWaypoint(14, -24.5, 0)
+    public static AutonomousWaypoint centerPurpleDrop = new AutonomousWaypoint(7, -24.5, 0)
             .setAudienceOffset(-50, 0, 0);
 
     public static AutonomousWaypoint backstagePurpleDrop = new AutonomousWaypoint(23.5, -30, 0)
@@ -77,7 +78,8 @@ public abstract class AutoBase extends Robot {
     public static double perPixelStackHeightDecrement = 0.5;
     public static double perCycleDropHeightIncrement = 3;
     public static double cycleSlideOffset = -17;
-    public static boolean cycle = false;
+    public static double stackExtendoOffsetDegrees = 6;
+    public static boolean cycle = true;
     public static int cameraWBtemp = 3000;
     //public static propPositions propPos = propPositions.CENTER;
 
@@ -130,6 +132,7 @@ public abstract class AutoBase extends Robot {
         // 35x - backdrop to cycle
         // 36x - close stack, stage door
         // 37x - far stack, stage door
+        // 38x - extendo cycle, middle truss
     // 4xx - cycle: intake
         // 40x - close stack
         // 41x - middle stack
@@ -141,6 +144,7 @@ public abstract class AutoBase extends Robot {
         // 50x - left
         // 51x - middle
         // 52x - right
+        // 53x - right short
         // 54x - left short
         // 55x - backstage far
         // 56x - backstage wall
@@ -149,6 +153,8 @@ public abstract class AutoBase extends Robot {
         // 91x - backstage wall
         // 95x - extendo park from scoring pos
         // 99x - failsafe states
+
+    // TODO: stack intake tilt is 8.5 degrees, just use the lifter for the rest of the adjustments
     public int state = 10;
 
     enum park {
@@ -278,12 +284,14 @@ public abstract class AutoBase extends Robot {
                     setState(211);
                 }
             } else if (state == 211) {
+                resetToAprilTags();
 
                 if (arm.isDone(10) || timer.seconds() < 2) {
                     setState(212);
                 }
                 // pause
             } else if (state == 212) {
+                resetToAprilTags();
                 if (arm.getVelocity() < 0.001 && timer.seconds() > 0.8) {
                     if (!isBackstage) {
                         bucket.unlatch();
@@ -547,7 +555,7 @@ public abstract class AutoBase extends Robot {
             } else if (state == 220) {
                 arm.tiltArm(150);
                 if (arm.getPosition() > 200 && !arm.isTilted(1)) {
-                    arm.moveSlides(-0.1);
+                    arm.moveSlides(-0.7);
                 } else {
                     //arm.moveTilt(0);
                     goToPoint(new AutonomousWaypoint(40, -39, middleBackdropDrop)
@@ -560,6 +568,7 @@ public abstract class AutoBase extends Robot {
                     }
                 }
             } else if (state == 221) {
+                resetToAprilTags();
                 swerve.stop();
                 //arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
                 Log.println(Log.INFO, "target extension", "target extension: " + ArmIVK.getSlideExtension());
@@ -568,6 +577,7 @@ public abstract class AutoBase extends Robot {
                 }
                 // pause and transition
             } else if (state == 222) {
+                resetToAprilTags();
                 swerve.stop();
                 if (arm.getVelocity() < 0.001 && timer.seconds() > 0.8) {
                     bucket.setRightLatch(false);
@@ -631,11 +641,13 @@ public abstract class AutoBase extends Robot {
                     setState(231);
                 }
             } else if (state == 231) {
+                resetToAprilTags();
                 //arm.extend(YELLOW_PIXEL_ARM_EXTENSION_VALUE);
                 if (arm.isDone(10) || timer.seconds() > 2) {
                     setState(232);
                 }
             } else if (state == 232) {
+                resetToAprilTags();
                 if (arm.getVelocity() < 0.001 && timer.seconds() > 0.8) {
                     bucket.setLeftLatch(false);
                     if (!isBackstage) {
@@ -693,7 +705,8 @@ public abstract class AutoBase extends Robot {
             // go to normal cycle position
             else if (state == 350) {
                 if (cycle) {
-                    setState(450);
+                    setState(380);
+                    //setState(450);
                 } else {
                     if (parkarea == park.FAR) {
                         setState(900);
@@ -722,7 +735,7 @@ public abstract class AutoBase extends Robot {
                     }
                 }*/
             }
-            else if (state == 351) {
+            /*else if (state == 351) {
                 goToPoint(new AutonomousWaypoint(-12,-36,closeStack)
                         .setHeadingTolerance(0.05)
                         .setRotationOffset(Math.PI));
@@ -732,40 +745,75 @@ public abstract class AutoBase extends Robot {
 
                     setState(400);
                 }
+            }*/
+
+            else if (state == 380) {
+                setFSMtoAuto();
+
+                arm.extend(0);
+                if (arm.isDone(10) || (arm.getVelocity() < 0.000001 && timer.seconds() > 0.5)) {
+                    setState(381);
+                }
+            } else if (state == 381) {
+                arm.tiltArm(10);
+                if (arm.isTilted(3)) {
+                    setState(382);
+                }
+            }
+            else if (state == 382) {
+                goToPoint(new AutonomousWaypoint(-12, -36, closeStack)
+                        .setHeadingTolerance(Math.toRadians(1))
+                        .setRotationOffset(Math.PI + Math.toRadians(stackExtendoOffsetDegrees))); // correct for slide angle
+                if (isStoppedAtPoint()) {
+                    setFSMtoAuto();
+                    setState(400);
+                }
             }
 
-            // cycle close stack
+            // extendo cycle close stack
             else if (state == 400) {
-                safeGoToArmIVK();
-
-                arm.setLifterHeight(intakeLifterHeight);
-                if (arm.isDone(10)) {
-                    //setIntake(0);
+                arm.tiltArm(CycleTest.tiltAngle);
+                arm.setLifterHeight(0);
+                if (arm.isTilted(CycleTest.tiltTolerance) && Math.abs(arm.getTiltVelocity()) < CycleTest.maxTiltVelo) {
                     setState(401);
                 }
             } else if (state == 401) {
-                if (arm.isTilted(1)) {
-                    arm.moveSlides(0.2);
-                    if (bucket.getNumPixels() > 0) {
-                        bucket.smartLatch();
-                        setState(402);
-                    } else {
-                        setState(950);
-                    }
+                arm.ultrasonicExtend(CycleTest.ultrasonicDistance+5);
+                bucket.tilt(ArmIVK.getBucketTilt(arm.getTilt(), Math.PI));
+                if (arm.getUltrasonicInches() < CycleTest.ultrasonicDistance+10) {
+                    setState(402);
                 }
-            } else if (state == 402) {
-                if (timer.seconds() > STACK_INTAKE_TIME) {
+            }else if (state == 402) {
+                arm.setLifterHeight(CycleTest.lifterHeight);
+                if (timer.seconds() > 0.5) {
                     setState(403);
                 }
             } else if (state == 403) {
-                iFoldArm();
-                arm.extend(100);
-                if (arm.isDone(10) && arm.isTilted(1)) {
-                    setState(510);
+                arm.ultrasonicExtend(CycleTest.ultrasonicDistance);
+                bucket.tilt(ArmIVK.getBucketTilt(arm.getTilt(), Math.PI));
+                if (Math.abs(arm.getUltrasonicInches() - CycleTest.ultrasonicDistance) < CycleTest.ultrasonicTolerance && Math.abs(arm.getVelocity()) < CycleTest.maxArmVelo) {
+                    setState(404);
                 }
+            } else if (state == 404) {
+                arm.setLifterHeight(0);
+                if (timer.seconds() > 1) {
+                    setState(405);
+                }
+            } else if (state == 405) {
+                bucket.latch();
+                if (timer.seconds() > 0.5) {
+                    setState(406);
+                }
+            } else if (state == 406) {
+                bucket.tilt(0.5);
+                arm.extend(0);
+                if (timer.seconds() > 1 && (arm.isDone(20) || arm.getVelocity() < CycleTest.maxArmVelo)) {
+                    setState(530);
+                }
+            }
 
-                // cycle from stage door
-            } else if (state == 450) {
+            // cycle from stage door
+            else if (state == 450) {
                 foldArm();
                 goToPoint(new AutonomousWaypoint(40, -12, farStack, true)
                         .setRotationOffset(Math.PI));
@@ -865,6 +913,43 @@ public abstract class AutoBase extends Robot {
                     }
                 }
 
+            }
+
+            // right short
+            else if (state == 530) {
+                if (arm.getPosition() > 100) {
+                    arm.moveSlides(-0.7);
+                } else {
+                    arm.moveSlides(0);
+                    goToPoint(new AutonomousWaypoint(12, -36, getHeading()));
+                    if (atPoint()) {
+                        foldArm();
+                        setState(531);
+                    }
+                }
+            } else if (state == 531) {
+                goToPoint(new AutonomousWaypoint(40, -40, 0));
+                if (isStoppedAtPoint()) {
+                    outtake();
+                    setOuttake(AutonomousWaypoint.distance(odometry.getPose(), closeBackdropDrop)+yellowDistOffset+cycles*perCycleDropHeightIncrement/2, yellowHeightOffset+cycles*perCycleDropHeightIncrement);
+                    setState(532);
+                }
+            } else if (state == 532) {
+                resetToAprilTags();
+                if (arm.isDone(10) || timer.seconds() > 2) {
+                    setState(533);
+                }
+            } else if (state == 533) {
+                resetToAprilTags();
+                swerve.stop();
+                if (arm.getVelocity() < 0.001 && timer.seconds() > 0.8) {
+                    bucket.dropFromStack();
+                }
+                if (timer.seconds() > STACK_OUTTAKE_TIME) {
+                    bucket.dropFromStack();
+                    cycles++;
+                    setState(400);
+                }
             }
 
             else if (state == 540) {
@@ -1002,7 +1087,7 @@ public abstract class AutoBase extends Robot {
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
         // Set the camera (webcam vs. built-in RC phone camera).
-        builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "bucket camera"));
 
         // Choose a camera resolution. Not all cameras support all resolutions.
         builder.setCameraResolution(new Size(640, 480));
