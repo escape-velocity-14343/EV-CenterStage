@@ -213,7 +213,7 @@ public class CompTele extends Robot {
 
 
             if (gamepad1c.options && !lastgamepad1c.options) {
-                imu.resetYaw();
+                odometry.resetYaw();
             }
 
             lastgamepad1c.copy(gamepad1c);

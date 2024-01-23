@@ -12,7 +12,7 @@ public class Reset extends Robot {
         arm.reset();
         setFSMtoAuto();
         swerve.setAuton();
-        imu.resetYaw();
+        odometry.resetYaw();
         while (!isStopRequested()) {
             update();
             telemetry.addData("armpositionbefore", arm.getPosition());

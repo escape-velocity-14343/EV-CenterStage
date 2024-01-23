@@ -157,6 +157,8 @@ public abstract class AutoBase extends Robot {
     // TODO: stack intake tilt is 8.5 degrees, just use the lifter for the rest of the adjustments
     public int state = 10;
 
+
+
     enum park {
         WALL,
         FAR
@@ -166,8 +168,10 @@ public abstract class AutoBase extends Robot {
      * This function encapsulates everything you need to run the opmode. No other functions are necessary.
      */
     public void run(boolean isRed, boolean isBackstage) {
+
         initialize();
-        imu.resetYaw();
+        odometry.resetYaw();
+        //imu.resetYaw();
 
         this.isRed = isRed;
         this.isBackstage = isBackstage;

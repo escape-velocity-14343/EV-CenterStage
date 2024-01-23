@@ -7,6 +7,7 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -60,6 +61,9 @@ public class Odometry {
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         imu = hMap.get(IMU.class, "imu 1");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
+        imu.initialize(parameters);
+        initialIMUreading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
         while(fx!=0)
             reset();
 
@@ -152,12 +156,6 @@ public class Odometry {
 
         dc = (dx2 + dx) / 2;
 
-        // fix inexact angles
-        if (!hasRun) {
-            dh = 0;
-            hasRun = true;
-        }
-
         dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
 
         if (reverseX) {
@@ -199,7 +197,7 @@ public class Odometry {
         }
 
         if (persistentTimer.seconds() > persistentSeconds && usePersistent) {
-            lastHeading =
+            lastHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - initialIMUreading + initialHeading;
         }
 
 
@@ -252,9 +250,18 @@ public class Odometry {
         lasty = 0;
     }
 
+    public void resetYaw() {
+        imu.resetYaw();
+    }
+
+    private double initialHeading = 0;
+    private double initialIMUreading = 0;
+
     public void reset(double x, double y, double heading) {
         reset(x, y);
         lastHeading = heading;
+        initialHeading = heading;
+        initialIMUreading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
     public double getDx() {
         return dx;

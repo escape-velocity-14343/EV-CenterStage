@@ -199,7 +199,7 @@ public abstract class Robot extends LinearOpMode {
     public double getHeading() {
 
         //botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
-        return odometry.getPose().getRotation().getRadians();
+        return botHeading = odometry.getPose().getRotation().getRadians();
     }
 
     private int loops = 0;
@@ -217,7 +217,7 @@ public abstract class Robot extends LinearOpMode {
 
         gamepad1c.copy(gamepad1);
         gamepad2c.copy(gamepad2);
-        imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        //imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
         telemetry.addData("imu looptime", (timer.nanoseconds() - lastLoopNanos)/1e6);
         telemetry.addData("imu reading", imuReading);
         telemetry.addData("heading offset", headingOffset);
