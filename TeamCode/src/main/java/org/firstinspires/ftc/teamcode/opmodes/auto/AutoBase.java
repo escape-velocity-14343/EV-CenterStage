@@ -1105,22 +1105,22 @@ public abstract class AutoBase extends Robot {
     {
         return new AprilTagLibrary.Builder()
                 .addTag(1, "BlueAllianceLeft",
-                        2, new VectorF(61.5f, 41.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, 41.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(2, "BlueAllianceCenter",
-                        2, new VectorF(61.5f, 35.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, 35.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(3, "BlueAllianceRight",
-                        2, new VectorF(61.5f, 29.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, 29.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(4, "RedAllianceLeft",
-                        2, new VectorF(61.5f, -29.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, -29.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(5, "RedAllianceCenter",
-                        2, new VectorF(61.5f, -35.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, -35.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(6, "RedAllianceRight",
-                        2, new VectorF(61.5f, -41.41f, 4f), DistanceUnit.INCH,
+                        2, new VectorF(61.75f, -41.41f, 4f), DistanceUnit.INCH,
                         new Quaternion(0.3536f, -0.6124f, 0.6124f, -0.3536f, 0))
                 .addTag(7, "RedAudienceWallLarge",
                         5, new VectorF(-70.25f, -40.625f, 5.5f), DistanceUnit.INCH,
