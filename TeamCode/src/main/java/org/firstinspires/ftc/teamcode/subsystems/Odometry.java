@@ -258,22 +258,34 @@ public class Odometry {
         // therefore delta_x = delta_omega * radius
         // therefore radius = delta_x/delta_omega
 
-        double r_x = delta_x/delta_omega;
+        Vector2d localVector = new Vector2d();
 
-        // same applies for y
+        // account for inf curvature case (unlikely but possible)
 
-        double r_y = delta_y/delta_omega;
+        if (delta_omega == 0) {
+            // no rotation makes life pretty easy lol
+            localVector = new Vector2d(delta_x, delta_y);
+        } else {
 
-        // find local x delta
-        Vector2d localDelta_x = new Vector2d(Math.cos(delta_omega)*r_x - r_x, Math.sin(delta_omega)*r_x); // correct for starting position by subtracting (r_x, 0)
+            double r_x = delta_x / delta_omega;
 
-        // find local y delta
-        // same process as local x delta but we rotate an additional 90 degrees
-        double delta_omega_y = delta_omega + Math.PI/2;
+            // same applies for y
 
-        Vector2d localDelta_y = new Vector2d(Math.cos(delta_omega_y)*r_y, Math.sin(delta_omega_y)*r_y - r_y); // correct for starting position by subtracting (0, r_y)
+            double r_y = delta_y / delta_omega;
 
-        Vector2d localVector = localDelta_x.plus(localDelta_y);
+            // find local x delta
+            // move to the correct starting location (where the tangent line faces the x axis)
+            double delta_omega_x = delta_omega - Math.PI/2
+            Vector2d localDelta_x = new Vector2d(Math.cos(delta_omega_x) * r_x, Math.sin(delta_omega_x) * r_x + r_x); // correct for starting position by subtracting (0, -r_x)
+
+            // find local y delta
+            // same process as local x delta but we start at (r_y, 0) instead of (0, -r_y)
+            double delta_omega_y = delta_omega;
+
+            Vector2d localDelta_y = new Vector2d(Math.cos(delta_omega_y) * r_y - r_y, Math.sin(delta_omega_y) * r_y); // correct for starting position by subtracting (r_y, 0)
+
+            localVector = localDelta_x.plus(localDelta_y);
+        }
 
         // transform local vector by original heading to get FC delta
 
