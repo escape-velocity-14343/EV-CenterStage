@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.arcrobotics.ftclib.geometry.Vector2d;
 import com.arcrobotics.ftclib.hardware.motors.Motor;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -210,6 +211,121 @@ public class Odometry {
         telemetry.addData("pose y", getPose().getY());
         telemetry.addData("total dx", dxTotal);
         telemetry.addData("total dy", dyTotal);
+    }
+
+    /**
+     * 3 wheel function with pose exponentials (arc odometry)
+     * @param loopNanos
+     */
+    public void updateArc(long loopNanos) {
+        lastLoopNanos = loopNanos;
+
+        int xEnc = xE.getCurrentPosition();
+        int xEnc2 = xE2.getCurrentPosition();
+        int yEnc = yE.getCurrentPosition();
+
+        dx = (xEnc-lastx)/TICKS_PER_INCH;
+        dx2 = (xEnc2-lastx2)/TICKS_PER_INCH;
+
+        // find heading
+        dh = (dx - dx2) / trackwidth;
+
+        // find delta_x
+        dc = (dx + dx2)/2.0;
+
+        // find delta_y
+        dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
+
+
+        if (reverseX) {
+            dx*=-1;
+            dx2*=-1;
+        }
+        if (reverseY) {
+            dy*=-1;
+        }
+        if (reverseHeading) {
+            dh *= -1;
+        }
+
+
+        double delta_x = dc;
+        double delta_y = dy;
+        double delta_omega = dh;
+
+        // find r_x
+        // arclen = theta * radius
+        // therefore delta_x = delta_omega * radius
+        // therefore radius = delta_x/delta_omega
+
+        double r_x = delta_x/delta_omega;
+
+        // same applies for y
+
+        double r_y = delta_y/delta_omega;
+
+        // find local x delta
+        Vector2d localDelta_x = new Vector2d(Math.cos(delta_omega)*r_x - r_x, Math.sin(delta_omega)*r_x); // correct for starting position by subtracting (r_x, 0)
+
+        // find local y delta
+        // same process as local x delta but we rotate an additional 90 degrees
+        double delta_omega_y = delta_omega + Math.PI/2;
+
+        Vector2d localDelta_y = new Vector2d(Math.cos(delta_omega_y)*r_y, Math.sin(delta_omega_y)*r_y - r_y); // correct for starting position by subtracting (0, r_y)
+
+        Vector2d localVector = localDelta_x.plus(localDelta_y);
+
+        // transform local vector by original heading to get FC delta
+
+        Vector2d FCdeltas = localVector.rotateBy(lastHeading); // this rotate function actually works!
+
+        fx += FCdeltas.getX();
+        fy += FCdeltas.getY();
+
+        lastHeading += dh;
+
+
+        // ------------------ MATH ENDS HERE ---------------------
+        // housekeeping
+        lastx = xEnc;
+        lastx2 = xEnc2;
+        lasty = yEnc;
+
+        TelemetryPacket packet = new TelemetryPacket();
+        field = packet.fieldOverlay();
+        int robotRadius = 8;
+        field.strokeCircle(fx, fy, robotRadius);
+        double arrowX = new Rotation2d(heading).getCos() * robotRadius, arrowY = new Rotation2d(heading).getSin() * robotRadius;
+        double x1 = fx, y1 = fy;
+        double x2 = fx + arrowX, y2 = fy+ arrowY;
+        field.strokeLine(x1, y1, x2, y2);
+        field.setFill("yellow");
+        field.setStroke("yellow");
+        field.fillCircle(targetx, targety, 2);
+        field.strokeLine(x1, y1, x1+targetx2, y1+targety2);
+        if (!Robot.useDashTelemetry) {
+            FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        }
+
+
+        if (persistentTimer.seconds() > persistentSeconds && usePersistent) {
+            lastHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - initialIMUreading + initialHeading;
+        }
+
+
+        telemetry.addData("xenc", xE.getCurrentPosition());
+        telemetry.addData("yenc", yE.getCurrentPosition());
+        telemetry.addData("dx", getDx());
+        telemetry.addData("dy",getDy());
+
+        telemetry.addData("pose x", getPose().getX());
+        telemetry.addData("pose y", getPose().getY());
+        telemetry.addData("total dx", dxTotal);
+        telemetry.addData("total dy", dyTotal);
+
+
+
+
     }
 
     public void reset() {
