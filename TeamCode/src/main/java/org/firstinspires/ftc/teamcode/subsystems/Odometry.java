@@ -26,7 +26,7 @@ public class Odometry {
     DcMotor xE, xE2, yE;
     IMU imu;
     double fx,fy,dx, dx2, dc, dy,heading,dh; //heading radians
-    double dxTotal, dyTotal;
+    double dxTotal, dyTotal, hTotal;
     double lastHeading=0, lastx=0, lasty=0, lastx2=0;
     Canvas field = new Canvas();
     TelemetryPacket packet = new TelemetryPacket();
@@ -34,16 +34,18 @@ public class Odometry {
     public double targetx2=-10000, targety2=-10000;
 
     // TODO: Empirically tune these
-    public static double TICKS_PER_INCH = 936;
+    public static double TICKS_PER_INCH = 934;
     public static double X_ROTATE = 3.75;
-    public static double Y_ROTATE = 6.11536953336;
+    public static double Y_ROTATE = 4;
     public static boolean reverseX = false;
-    public static boolean reverseY = false;
+    public static boolean reverseX2 = true;
+    public static boolean reverseY = true;
     public static boolean reverseHeading = false;
-    public static boolean usePersistent = false;
-    public static double persistentSeconds = 1;
+    public static boolean usePersistent = true;
+    public static double persistentSeconds = 0.25;
+    private static double headingCarryover = 0;
     private ElapsedTime persistentTimer = new ElapsedTime();
-    public static double trackwidth = 10;
+    public static double trackwidth = 6.9377658403;
 
     private long lastLoopNanos = 1;
     private boolean hasRun = false;
@@ -53,20 +55,29 @@ public class Odometry {
     public Odometry (HardwareMap hMap, ToggleTelemetry telemetry) {
         this.telemetry = telemetry;
         //this.fieldtelem = fieldtelem;
-        xE = hMap.dcMotor.get("bottomright");
+        xE = hMap.dcMotor.get("bottomleft");
         xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        yE = hMap.dcMotor.get("topright");
+        xE2 = hMap.dcMotor.get("topright");
+        xE2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        yE = hMap.dcMotor.get("bottomright");
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         imu = hMap.get(IMU.class, "imu 1");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP, RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
         imu.initialize(parameters);
+        imu.resetYaw();
         initialIMUreading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-        while(fx!=0)
+        reset(getPose().getX(), getPose().getY(), headingCarryover);
+        int c = 0;
+        while(fx!=0 && c < 10) {
             reset();
+            c++;
+        }
 
 
 
@@ -131,6 +142,7 @@ public class Odometry {
         telemetry.addData("pose y", getPose().getY());
         telemetry.addData("total dx", dxTotal);
         telemetry.addData("total dy", dyTotal);
+        headingCarryover = heading;
 
         //telemetry.put("time", System.currentTimeMillis());
 
@@ -150,27 +162,32 @@ public class Odometry {
         dx = (xEnc-lastx)/TICKS_PER_INCH;
         dx2 = (xEnc2-lastx2)/TICKS_PER_INCH;
 
+        if (reverseX) {
+            dx*=-1;
+        }
+        if (reverseX2) {
+            dx2*=-1;
+        }
+
 
         dh = (dx - dx2) / trackwidth;
 
-
-
-        dc = (dx2 + dx) / 2;
-
-        dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
-
-        if (reverseX) {
-            dx*=-1;
-            dx2*=-1;
-        }
-        if (reverseY) {
-            dy*=-1;
-        }
         if (reverseHeading) {
             dh *= -1;
         }
+
+
+
+
+        dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
+
+
+        if (reverseY) {
+            dy*=-1;
+        }
+
         // TODO: make this not as bad lol
-        dx = dc;
+        dx = (dx2 + dx) / 2;
 
         dxTotal += dx;
         dyTotal +=dy;
@@ -178,6 +195,7 @@ public class Odometry {
         fx += dx * Math.cos(heading) - dy * Math.sin(heading);
         fy += dx * Math.sin(heading) + dy * Math.cos(heading);
         lastHeading = heading;
+        hTotal += dh;
         lastx = xEnc;
         lastx2 = xEnc2;
         lasty = yEnc;
@@ -211,6 +229,8 @@ public class Odometry {
         telemetry.addData("pose y", getPose().getY());
         telemetry.addData("total dx", dxTotal);
         telemetry.addData("total dy", dyTotal);
+        telemetry.addData("total heading", hTotal);
+        headingCarryover = heading;
     }
 
     /**
@@ -227,8 +247,20 @@ public class Odometry {
         dx = (xEnc-lastx)/TICKS_PER_INCH;
         dx2 = (xEnc2-lastx2)/TICKS_PER_INCH;
 
+        if (reverseX) {
+            dx*=-1;
+        }
+        if (reverseX2) {
+            dx2*=-1;
+        }
+
         // find heading
+        //dh = Math.asin((dx - dx2) / trackwidth);
         dh = (dx - dx2) / trackwidth;
+
+        if (reverseHeading) {
+            dh *= -1;
+        }
 
         // find delta_x
         dc = (dx + dx2)/2.0;
@@ -237,20 +269,16 @@ public class Odometry {
         dy = (yEnc-lasty)/TICKS_PER_INCH - Y_ROTATE*dh;
 
 
-        if (reverseX) {
-            dx*=-1;
-            dx2*=-1;
-        }
+
         if (reverseY) {
             dy*=-1;
         }
-        if (reverseHeading) {
-            dh *= -1;
-        }
+
 
 
         double delta_x = dc;
         double delta_y = dy;
+        //delta_y = 0;
         double delta_omega = dh;
 
         // find r_x
@@ -275,7 +303,7 @@ public class Odometry {
 
             // find local x delta
             // move to the correct starting location (where the tangent line faces the x axis)
-            double delta_omega_x = delta_omega - Math.PI/2
+            double delta_omega_x = delta_omega - Math.PI/2;
             Vector2d localDelta_x = new Vector2d(Math.cos(delta_omega_x) * r_x, Math.sin(delta_omega_x) * r_x + r_x); // correct for starting position by subtracting (0, -r_x)
 
             // find local y delta
@@ -289,12 +317,15 @@ public class Odometry {
 
         // transform local vector by original heading to get FC delta
 
-        Vector2d FCdeltas = localVector.rotateBy(lastHeading); // this rotate function actually works!
+        Vector2d FCdeltas = localVector.rotateBy(Math.toDegrees(lastHeading)); // this rotate function actually works!
+
 
         fx += FCdeltas.getX();
         fy += FCdeltas.getY();
 
         lastHeading += dh;
+        hTotal += dh;
+        heading = lastHeading;
 
 
         // ------------------ MATH ENDS HERE ---------------------
@@ -321,12 +352,14 @@ public class Odometry {
 
 
         if (persistentTimer.seconds() > persistentSeconds && usePersistent) {
-            lastHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - initialIMUreading + initialHeading;
+            persistentTimer.reset();
+            lastHeading = (imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - initialIMUreading)*(reverseHeading?-1:1) + initialHeading;
         }
 
 
-        telemetry.addData("xenc", xE.getCurrentPosition());
-        telemetry.addData("yenc", yE.getCurrentPosition());
+        telemetry.addData("xenc", xEnc);
+        telemetry.addData("xenc2", xEnc2);
+        telemetry.addData("yenc", yEnc);
         telemetry.addData("dx", getDx());
         telemetry.addData("dy",getDy());
 
@@ -334,6 +367,8 @@ public class Odometry {
         telemetry.addData("pose y", getPose().getY());
         telemetry.addData("total dx", dxTotal);
         telemetry.addData("total dy", dyTotal);
+        telemetry.addData("total heading", hTotal);
+        headingCarryover = heading;
 
 
 
@@ -343,10 +378,13 @@ public class Odometry {
     public void reset() {
         xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        xE2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
         dx2=0;
+        dc=0;
         dy=0;
         dh=0;
         dxTotal=0;
@@ -362,6 +400,8 @@ public class Odometry {
     public void reset(double x, double y) {
         xE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         xE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        xE2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        xE2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         yE.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         yE.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         dx=0;
@@ -380,6 +420,15 @@ public class Odometry {
 
     public void resetYaw() {
         imu.resetYaw();
+        heading = 0;
+        lastHeading = 0;
+        headingCarryover = 0;
+        initialIMUreading = 0;
+        initialHeading = 0;
+    }
+
+    public double getIMUYaw() {
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
 
     private double initialHeading = 0;

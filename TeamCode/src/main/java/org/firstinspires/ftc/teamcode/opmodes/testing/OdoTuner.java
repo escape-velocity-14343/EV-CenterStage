@@ -31,6 +31,7 @@ public class OdoTuner extends Robot {
             int[] ticks = odometry.getTicks();
             telemetry.addData("Odometry x ticks", ticks[0]);
             telemetry.addData("Odometry y ticks", ticks[1]);
+            //telemetry.addData("true heading (imu)", Math.toDegrees(odometry.getIMUYaw()));
 
         }
     }

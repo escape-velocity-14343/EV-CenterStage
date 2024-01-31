@@ -14,11 +14,12 @@ public class ArmIVK {
     // Constants
     public static double TICKS_PER_INCH = 39.5;
     public static double BACKDROP_OFFSET_INCHES = 0;
-    public static double BUCKET_OFFSET_INCHES = 3.93700787;
-    public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = Math.toRadians(100);
+    public static double BUCKET_OFFSET_INCHES = 0;
+    public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = -0.9;
     public static double BUCKET_LENGTH_INCHES = 4;
-    public static double MAX_BUCKET_TILT_RADIANS = 4.00553063333;
-    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.5;
+    public static double MAX_BUCKET_TILT_RADIANS = 4.45058959259;
+    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = 4.3;
+    public static double SCORING_BUCKET_OFFSET = -1;
     public static double LIFTER_LENGTH = 3.3464;
     public static double MAX_LIFTER_TILT_RADIANS = 5.175414359;
 
@@ -31,12 +32,18 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
     public static double BUCKET_OFFSET_X = 0;
     public static double BUCKET_OFFSET_Y = 0;
+    public static double INTAKE_HEIGHT_OFFSET = 1.2;
+    public static double outtakebucketangle = -120;
+    public static double BAR_LENGTH = 3.043;
+    public static double MAX_BAR_TILT_RADIANS = Math.toRadians(90);
+    public static double BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.8;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;
     private static double armAngle = 0;
     private static double lastdist;
     private static double lastheight;
+    public static double barTilt = 0;
 
     private static final double sin120 = Math.sqrt(3)/2;
     private static final double cos120 = -0.5;
@@ -50,7 +57,7 @@ public class ArmIVK {
         distance = -distance;
         Vector2d backdropSpot = new Vector2d(distance, height);
         backdropSpot = backdropSpot.plus(new Vector2d(BACKDROP_OFFSET_INCHES*Math.cos(Math.toRadians(150)), BACKDROP_OFFSET_INCHES*Math.sin(Math.toRadians(150))));
-        return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(-120));
+        return calcIVK(backdropSpot.getX(), backdropSpot.getY(), Math.toRadians(outtakebucketangle));
     }
 
     /**
@@ -83,7 +90,7 @@ public class ArmIVK {
 
         double newSlideExtension = currLen - ARM_INITIAL_LENGTH + BUCKET_OFFSET_PIVOT_OFFSET_X;
         //double newArmAngle = bucketPos.angle();
-        double newBucketTilt = Range.clip((-newArmAngle - bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0.2, 1);
+        double newBucketTilt = (1-Range.clip((newArmAngle + bucketAngle + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS + SCORING_BUCKET_OFFSET)/MAX_BUCKET_TILT_RADIANS, 0, 1));
         // safety checks
         if (newSlideExtension > MAX_ARM_EXTENSION_INCHES) {
             Log.println(Log.WARN, "Arm IVK", "Exceeded maximum slide extension.");
@@ -105,6 +112,26 @@ public class ArmIVK {
         }
 
     }
+    public static boolean calcIntakeIVK(double distance, double height, double armAngle) {
+        height -= INTAKE_HEIGHT_OFFSET;
+        ///////// the height is backwards lol
+        height *= -1;
+        Log.println(Log.INFO, "ivk", "height/barlen: " + height/BAR_LENGTH);
+        double angle = Math.asin(height/BAR_LENGTH);
+        Log.println(Log.INFO, "ivk", "angle: " + angle);
+        double dist = distance - Math.cos(angle)*BAR_LENGTH;
+        slideExtension = (int) (dist * TICKS_PER_INCH);
+        double barTiltRadians = (-armAngle + angle - BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS);
+        double bucketTiltRadians = barTiltRadians + Math.PI;
+        barTilt = 1-Range.clip(barTiltRadians/MAX_BAR_TILT_RADIANS, 0, 1);
+        bucketTilt = 1-getBucketTilt(armAngle, bucketTiltRadians-0.4);
+        //bucketTilt = (1-Range.clip((angle + Math.PI*3.0/2 - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1));
+        //barTilt = (Range.clip((angle + Math.PI - BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BAR_TILT_RADIANS, 0, 1));
+
+        return false;
+
+
+    }
 
     /**
      * @return In servo range (0-1).
@@ -118,10 +145,20 @@ public class ArmIVK {
      * @param desiredBucketTilt In Radians.
      * @return In servo range (0-1).
      */
+    /*
     public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
         // sillyness to get this to function properly lmfao
         return Range.clip((-armAngle - desiredBucketTilt + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1);
 
+    }
+    */
+    public static double getBucketTilt(double armAngle, double desiredBucketTilt) {
+        // sillyness to get this to function properly lmfao
+        return (1-Range.clip((armAngle + desiredBucketTilt + Math.PI - BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS)/MAX_BUCKET_TILT_RADIANS, 0, 1));
+
+    }
+    public static double getBarTilt() {
+        return barTilt;
     }
     /**
      * @param height In Inches.

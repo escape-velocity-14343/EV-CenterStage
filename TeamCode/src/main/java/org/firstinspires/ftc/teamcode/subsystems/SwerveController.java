@@ -10,6 +10,7 @@ import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
 import com.arcrobotics.ftclib.geometry.Translation2d;
 import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -17,6 +18,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingCRServo;
 import org.firstinspires.ftc.teamcode.cachinghardwaredevice.CachingMotor;
 import org.firstinspires.ftc.teamcode.controllers.SquIDController;
 import org.firstinspires.ftc.teamcode.controllers.SquIDF;
@@ -97,6 +99,8 @@ public class SwerveController extends RobotDrive {
     boolean headingLock = false;
     double headingLockAngle = 0;
 
+    private CRServo extensionAdjuster;
+
     public SwerveController(HardwareMap hMap, ToggleTelemetry telemetry, Robot robot) {
         this.telemetry = telemetry;
         left = new SwerveModule(new CachingMotor(hMap,"bottomleft"),new CachingMotor(hMap,"topleft"),new AnalogEncoder(hMap,"leftrot"),telemetry);
@@ -109,6 +113,8 @@ public class SwerveController extends RobotDrive {
         right.setOffset(rOffset);
         this.robot = robot;
         voltageSensor = robot.voltageSensor;
+
+        extensionAdjuster = new CachingCRServo(hMap.crservo.get("adjuster"));
 
         this.headingIQID.setFeedforwardTolerance(Robot.headingTol);
         this.headingIQID.setFeedforwardBounds(0, 0.5);
@@ -172,6 +178,16 @@ public class SwerveController extends RobotDrive {
             left.podPid(0.0, lastMovement.getDegrees());
             right.podPid(0.0, lastMovement.getDegrees());
         }
+
+        if (robot.arm.getTilt() < 15) {
+            double movePower = -y;
+            movePower += rot;
+            movePower = Range.clip(movePower, -1, 1);
+            extensionAdjuster.setPower(movePower);
+        } else {
+            extensionAdjuster.setPower(0);
+        }
+
         //telemetry.addData("voltage", voltageSensor.getVoltage());
         //telemetry.addData("Left encoder", left.rot.getDegrees());
         //telemetry.addData("Right encoder", right.rot.getDegrees());
@@ -394,6 +410,8 @@ public class SwerveController extends RobotDrive {
         telemetry.addData("intended move", move);
         double xmove = Math.sin(angle) * move;
         double ymove = Math.cos(angle) * move;
+        odometry.targetx2 = xmove;
+        odometry.targety2 = ymove;
         driveFieldCentric(ymove*moveMult,-xmove*moveMult, rot*moveMult);
     }
 

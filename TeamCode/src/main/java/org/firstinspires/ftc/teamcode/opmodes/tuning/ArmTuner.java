@@ -26,13 +26,13 @@ public class ArmTuner extends Robot {
         setFSMtoAuto();
         while (opModeIsActive()) {
             if (useArmIVK) {
-                ArmIVK.calcIVK(armIVKDistance, armIVKHeight, bucketTiltDegrees);
+                ArmIVK.calcIVK(armIVKDistance, armIVKHeight, Math.toRadians(bucketTiltDegrees));
                 goToArmIVK();
                 telemetry.addData("Bucket target", ArmIVK.getBucketTilt());
                 telemetry.addData("Arm Angle target", ArmIVK.getArmAngle());
                 telemetry.addData("Arm Extension target", ArmIVK.getSlideExtension());
             } else {
-                arm.extendInches(armExtensionTarget);
+                arm.extend(armExtensionTarget);
                 arm.tiltArm(armTiltTargetDegrees);
                 bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.toRadians(bucketTiltDegrees)));
                 arm.setLifterHeight(lifterheight);

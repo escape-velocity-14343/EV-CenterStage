@@ -90,10 +90,10 @@ public class TeamPropProcessor implements VisionProcessor {
     public static int blueLeftOffset = -40;
     public static int blueMiddleOffset = -20;
     public static int blueRightOffset = -10;
-    public static int fieldX = 0;
-    public static int fieldY = 0;
-    public static int fieldCenterX = 0;
-    public static int fieldCenterY = 0;
+    public static int fieldX = 200;
+    public static int fieldY = 50;
+    public static int fieldCenterX = 500;
+    public static int fieldCenterY = 700;
     public static int blueHue = 110;
     public static int redHue = 10;
     public static int redHue2 = 170;
@@ -155,6 +155,7 @@ public class TeamPropProcessor implements VisionProcessor {
             if (correctForField) {
                 Mat fieldMat = correctedMat.submat(fieldrect);
                 Scalar avgfield = Core.mean(fieldMat);
+                avgfield = new Scalar(avgfield.val[0] - 128, avgfield.val[1] - 128, avgfield.val[2] - 128);
                 Core.subtract(correctedMat, avgfield, correctedMat);
             }
 

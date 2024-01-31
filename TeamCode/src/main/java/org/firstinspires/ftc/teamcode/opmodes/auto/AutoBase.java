@@ -66,8 +66,8 @@ public abstract class AutoBase extends Robot {
 
     public static AutonomousWaypoint backstagePurpleDrop = new AutonomousWaypoint(23.5, -30, 0)
             .setAudienceOffset(-48, 0, 0);
-    public static double yellowHeightOffset = 2;
-    public static double yellowDistOffset = 0;
+    public static double yellowHeightOffset = -2;
+    public static double yellowDistOffset = -3;
     public static double intakeDist = 40;
     public static double intakeHeight = 0;
     public static double intakeLifterHeight = 24;
@@ -79,7 +79,7 @@ public abstract class AutoBase extends Robot {
     public static double perCycleDropHeightIncrement = 3;
     public static double cycleSlideOffset = -17;
     public static double stackExtendoOffsetDegrees = 6;
-    public static boolean cycle = true;
+    public static boolean cycle = false;
     public static int cameraWBtemp = 3000;
     //public static propPositions propPos = propPositions.CENTER;
 
@@ -215,7 +215,7 @@ public abstract class AutoBase extends Robot {
 
         while (opModeInInit()) {
             arm.tiltArm(160);
-            bucket.tilt(0.3);
+            bucket.tilt(1, 1);
             arm.setLifterHeight(0);
 
             update();
@@ -312,27 +312,23 @@ public abstract class AutoBase extends Robot {
                 // go to purple
             } else if (state == 110) {
                 setFSMtoAuto();
-                if (arm.getPosition() > 100) {
-                    arm.moveSlides(-1);
-                } else {
-                    arm.tiltArm(173);
-                    arm.extendInches(3);
-                    bucket.tilt(1);
-                    // point towards purple drop
-                    goToPoint(new AutonomousWaypoint(14, -36, audiencePurpleDrop)
-                                    .setAudienceOffset(-72, 0, 0));
-                            //.setBlueAudienceOffset(-48, 0, 0)
-                            //.setRotationOffset(Math.PI));
-                    if (atPoint()) {
-                        //intake();
-                        setState(111);
-                    }
+                arm.tiltArm(173);
+                arm.extendInches(3);
+                bucket.tilt(0, 1);
+                // point towards purple drop
+                goToPoint(new AutonomousWaypoint(14, -36, audiencePurpleDrop)
+                        .setAudienceOffset(-72, 0, 0));
+                //.setBlueAudienceOffset(-48, 0, 0)
+                //.setRotationOffset(Math.PI));
+                if (atPoint()) {
+                    //intake();
+                    setState(111);
                 }
                 // move, tilt arm & drop
             } else if (state == 111) {
                 arm.tiltArm(173);
                 arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop)-4);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 goToPoint(new AutonomousWaypoint(14, -36, audiencePurpleDrop)
                         .setTolerances(0.7, -0.1)
                         .setAudienceOffset(-50, 0, 0));
@@ -353,7 +349,7 @@ public abstract class AutoBase extends Robot {
             else if (state == 115) {
                 arm.tiltArm(173);
                 arm.extendInches(3);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 goToPoint(new AutonomousWaypoint(14, -40, audiencePurpleDrop)
                         .setTolerances(0.7, 0.1)
                         .setAudienceOffset(-50, 0, 0));
@@ -366,7 +362,7 @@ public abstract class AutoBase extends Robot {
                 swerve.stop();
                 arm.tiltArm(173);
                 arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), audiencePurpleDrop)-5);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 if (arm.isDone(15)||timer.seconds()>2) {
                     setState(117);
                 }
@@ -390,7 +386,7 @@ public abstract class AutoBase extends Robot {
                 }
             } else if (state == 126) {
                 arm.tiltArm(173);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 if (arm.isTilted(1)) {
                     bucket.setlatch(false, true);
                     setState(300);
@@ -526,7 +522,7 @@ public abstract class AutoBase extends Robot {
             else if (state == 120) {
                 arm.tiltArm(173);
                 arm.extendInches(3);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 goToPoint(new AutonomousWaypoint(14, -40, centerPurpleDrop)
                         .setTolerances(0.7, 0.1)
                         .setAudienceOffset(-50, 0, 0));
@@ -540,7 +536,7 @@ public abstract class AutoBase extends Robot {
                 swerve.stop();
                 arm.tiltArm(173);
                 arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), centerPurpleDrop)-5);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 if (arm.isDone(15)||timer.seconds() > 2) {
                     setState(122);
                 }
@@ -615,7 +611,7 @@ public abstract class AutoBase extends Robot {
                 //arm.moveSlides(0);
                 arm.tiltArm(173);
                 arm.extendInches(3);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 goToPoint(new AutonomousWaypoint(8, -36, backstagePurpleDrop)
                         // account for truss positions
                         .setAudienceOffset(-46, 0, 0));
@@ -626,7 +622,7 @@ public abstract class AutoBase extends Robot {
                 swerve.stop();
 
                 arm.extendInches(AutonomousWaypoint.distance(odometry.getPose(), backstagePurpleDrop)-5);
-                bucket.tilt(1);
+                bucket.tilt(0, 1);
                 if (arm.isDone(10) || (arm.getVelocity() < 0.001 && timer.seconds() > 0.5)) {
                     bucket.setRightLatch(false);
                     setState(132);
@@ -992,12 +988,22 @@ public abstract class AutoBase extends Robot {
             }
 
             else if (state == 900) {
+                if (propPosition != propPositions.BACKSTAGE) {
+                    setState(901);
+                } else {
+                    foldArm();
+                    goToPoint(new AutonomousWaypoint(12, -12, 0));
+                    if (atPoint()) {
+                        setState(901);
+                    }
+                }
+            } else if (state == 901) {
                 foldArm();
                 goToPoint(new AutonomousWaypoint(40, -12, 0));
                 if (atPoint()) {
-                    setState(901);
+                    setState(902);
                 }
-            } else if (state == 901) {
+            } else if (state == 902) {
                 goToPoint(new AutonomousWaypoint(50, -12, 0));
                 if (atPoint() || timer.seconds() > 5) {
                     requestOpModeStop();
@@ -1005,12 +1011,23 @@ public abstract class AutoBase extends Robot {
             }
 
             else if (state == 910) {
+                if (propPosition != propPositions.BACKSTAGE) {
+                    setState(911);
+                } else {
+                    foldArm();
+                    goToPoint(new AutonomousWaypoint(12, -60, 0));
+                    if (atPoint()) {
+                        setState(911);
+                    }
+                }
+            }
+            else if (state == 911) {
                 foldArm();
                 goToPoint(new AutonomousWaypoint(40, -60, 0));
                 if (atPoint()) {
-                    setState(911);
+                    setState(912);
                 }
-            } else if (state == 911) {
+            } else if (state == 912) {
                 goToPoint(new AutonomousWaypoint(50, -60, 0));
                 if (atPoint() || timer.seconds() > 5) {
                     requestOpModeStop();
@@ -1091,7 +1108,7 @@ public abstract class AutoBase extends Robot {
         VisionPortal.Builder builder = new VisionPortal.Builder();
 
         // Set the camera (webcam vs. built-in RC phone camera).
-        builder.setCamera(hardwareMap.get(WebcamName.class, "bucket camera"));
+        builder.setCamera(hardwareMap.get(WebcamName.class, "camera"));
 
         // Choose a camera resolution. Not all cameras support all resolutions.
         builder.setCameraResolution(new Size(640, 480));

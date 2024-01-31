@@ -83,6 +83,8 @@ public class SwerveModule {
     * @param y the y value to move the pod in, relative to the robot
     */
     public void podPidXY(double x, double y) {
+        telemetry.addData("podPidX" + direction, x);
+        telemetry.addData("podPidY" + direction, y);
         podPid(Math.hypot(x,y), Math.toDegrees(Math.atan2(y,x)));
     }
     public void AddRotation(double rotation) {

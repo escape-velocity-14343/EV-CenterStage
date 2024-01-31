@@ -25,7 +25,7 @@ public class BucketIVKTest extends Robot {
                 arm.moveTilt(0);
             }
 
-            bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), targetBucketAngle));
+            bucket.tilt(0, ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), targetBucketAngle));
             telemetry.addData("bucket thing", ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), targetBucketAngle));
             update();
         }

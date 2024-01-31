@@ -14,7 +14,7 @@ public class CompTele extends Robot {
 
     Gamepad lastgamepad1c = new Gamepad();
     Gamepad lastgamepad2c = new Gamepad();
-    public static double intakeTilt = 4;
+    public static double intakeTilt = 0;
 
     @Override
     public void runOpMode() {
@@ -28,7 +28,7 @@ public class CompTele extends Robot {
             // outtake
             if (inOuttake() && isDone()) {
                 if (gamepad1c.left_trigger > 0) {
-                    setOuttake(getArmDistance() - gamepad1c.left_trigger * (loopNanos / 4e7), getArmHeight() - gamepad1c.left_trigger * (loopNanos / 2e7));
+                    setOuttake((getArmDistance() < 14 ? 14 : getArmDistance() - gamepad1c.left_trigger * (loopNanos / 4e7)), getArmHeight() - gamepad1c.left_trigger * (loopNanos / 2e7));
                 } else if (gamepad1c.right_trigger > 0) {
                     setOuttake(getArmDistance() + gamepad1c.right_trigger * (loopNanos / 4e7), getArmHeight() + gamepad1c.right_trigger * (loopNanos / 2e7));
                 }
@@ -46,7 +46,7 @@ public class CompTele extends Robot {
                     bucket.setRightLatch(true);
                 }
                 if (gamepad2c.left_trigger > 0) {
-                    setOuttake(getArmDistance() - gamepad2c.left_trigger * (loopNanos / 1e8), getArmHeight());
+                    setOuttake((getArmDistance() < 14 ? 14 : getArmDistance() - gamepad2c.left_trigger * (loopNanos / 1e8)), getArmHeight());
                 } else if (gamepad2c.right_trigger > 0) {
                     setOuttake(getArmDistance() + gamepad2c.right_trigger * (loopNanos / 1e8), getArmHeight());
                 }
@@ -93,9 +93,9 @@ public class CompTele extends Robot {
                 }
 
                 if (gamepad2c.left_trigger > 0) {
-                    arm.moveSlides(-gamepad1c.left_trigger);
+                    arm.moveSlides(-gamepad2.left_trigger);
                 } else if (gamepad2c.right_trigger > 0  && arm.getPosition() < 1700) {
-                    arm.moveSlides(gamepad1c.right_trigger);
+                    arm.moveSlides(gamepad2c.right_trigger);
                 } else {
                     arm.moveSlides(0);
                 }
@@ -130,13 +130,18 @@ public class CompTele extends Robot {
                 intake();
                 setIntake(intakeTilt);
             }
-            if (gamepad1c.left_bumper) {
-                bucket.latch();
+            if (gamepad1c.left_bumper&&!lastgamepad1c.left_bumper) {
+                if (bucket.leftIsLatched() != bucket.rightIsLatched()) {
+                    bucket.latch();
+                } else {
+                    bucket.setLeftLatch(!bucket.leftIsLatched());
+                    bucket.setRightLatch(!bucket.rightIsLatched());
+                }
             }
             if (gamepad1c.touchpad) {
                 if (inIntake()) {
                     iFoldArm();
-                } else {
+                } else if (!lastgamepad1c.touchpad){
                     foldArm();
                 }
             }
@@ -170,6 +175,9 @@ public class CompTele extends Robot {
             }
             if (gamepad2c.share && !lastgamepad2c.share) {
                 flipHeadingLock();
+            }
+            if (gamepad1c.options && !lastgamepad1c.options) {
+                odometry.resetYaw();
             }
             if (inAuto()) {
                 if (gamepad2c.left_trigger > 0) {

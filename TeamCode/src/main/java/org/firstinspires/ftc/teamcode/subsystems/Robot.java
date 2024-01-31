@@ -179,6 +179,7 @@ public abstract class Robot extends LinearOpMode {
 
     }
 
+    @Deprecated
     public void readIMU() {
     //    imuReading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
@@ -189,7 +190,7 @@ public abstract class Robot extends LinearOpMode {
         }
         //Log.println(Log.INFO, "heading", "imu reading: " + imuReading);
         //headingOffset = pose.getRotation().getRadians()-imuReading;
-        odometry.reset(pose.getX(), pose.getY(), getHeading());
+        odometry.reset(pose.getX(), pose.getY(), pose.getRotation().getRadians());
 
     }
 
@@ -198,12 +199,16 @@ public abstract class Robot extends LinearOpMode {
      */
     public double getHeading() {
 
-        //botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
+        //return botHeading = AngleUnit.normalizeRadians(imuReading + headingOffset);
         return botHeading = odometry.getPose().getRotation().getRadians();
     }
 
     private int loops = 0;
     private long initialNanos = 0;
+
+    public static double bucketTiltThing = 1;
+    public static double notBucketTiltThing = 0.6;
+    public static boolean reverseBucketTiltThing = false;
 
     public void update() {
         loops++;
@@ -222,11 +227,12 @@ public abstract class Robot extends LinearOpMode {
         telemetry.addData("imu reading", imuReading);
         telemetry.addData("heading offset", headingOffset);
         //telemetry.addData("voltage", voltageSensor.getVoltage());
-        botHeading = getHeading();
+
 
 
         long botheadingread = timer.nanoseconds();
-        odometry.update(botHeading, loopNanos);
+        odometry.updateArc(loopNanos);
+        botHeading = getHeading();
         telemetry.addData("odometry looptime", (timer.nanoseconds() - botheadingread)/1e6);
 
         long miscread = timer.nanoseconds();
@@ -245,6 +251,7 @@ public abstract class Robot extends LinearOpMode {
             case INTAKE:
                 switch (intakeProgress) {
                     case EXTENDED:
+                        bucket.unlatch();
                         // if arm is already in right position don't do anything
                         if (arm.isTilted(1, intakeTilt)) {
                             intakeProgress = intakeStates.TILTED;
@@ -255,19 +262,23 @@ public abstract class Robot extends LinearOpMode {
                         }
                         break;
                     case RETRACTED:
+                        bucket.tilt(1, 1);
+                        ArmIVK.calcIntakeIVK(5,0, Math.toRadians(arm.getTilt()));
                         fsmIsDone = true;
-                        arm.tiltArm(intakeTilt);
-                        if (arm.isTilted(3)) {
+                        arm.tiltArm(-2);
+                        if (arm.getTilt() < 5) {
                             intakeProgress = intakeStates.TILTED;
                         }
                         break;
                     case TILTED:
-                        arm.setLifterHeight(intakeLifterHeight);
+                        arm.tiltArm(-2);
+                        bucket.tilt(1, 1);
+                        //bucket.tilt(ArmIVK.getBarTilt(), ArmIVK.getBucketTilt());
                         // tilt if the arm is in a reasonable position to tilt
                         if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
-                            arm.tiltArm(intakeTilt);
+                           // arm.tiltArm(intakeTilt);
                         }
-                        bucket.intake();
+                        //bucket.tilt(bucketTiltThing, notBucketTiltThing);
                         bucket.smartLatch();
                         arm.extend(50);
                         if (arm.isDone(20)) {
@@ -277,12 +288,12 @@ public abstract class Robot extends LinearOpMode {
                         break;
                     case DONE:
                         if (arm.getPosition() < 500 || Math.abs(arm.getTilt()-intakeTilt) < 10) {
-                            arm.tiltArm(intakeTilt);
+                            //arm.tiltArm(intakeTilt);
                         }
                         //arm.outtakeLifter();
                         arm.setLifterHeight(intakeLifterHeight);
                         // tilt if the arm is in a reasonable position to tilt
-                        bucket.intake();
+                        bucket.tilt(ArmIVK.getBarTilt(), ArmIVK.getBucketTilt());
                         bucket.smartLatch();
                         if (bucket.getNumPixels()==2) {
                             gamepad1.rumble(50);
@@ -329,12 +340,13 @@ public abstract class Robot extends LinearOpMode {
                 }
                 break;
             case INIT:
-                bucket.intake();
+                bucket.tilt(1, 0);
                 arm.setLifterHeight(0);
                 drone.setPosition(1);
                 break;
             case FOLDED:
-                bucket.tilt(0.7);
+                bucket.latch();
+                bucket.tilt(1, 1);
                 arm.setLifterHeight(0);
                 arm.extend(20);
                 if (arm.getPosition() < 100) {
@@ -347,6 +359,7 @@ public abstract class Robot extends LinearOpMode {
                 }
                 break;
             case IFOLD:
+                bucket.latch();
                 bucket.tilt(0.6);
                 arm.extend(20);
                 if (arm.isDone(10)) {
@@ -362,11 +375,11 @@ public abstract class Robot extends LinearOpMode {
                 switch (hangProgress) {
                     case GROUND:
                         if (arm.getPosition() < 100) {
-                            arm.tiltArm(130);
+                            arm.tiltArm(110);
                         } else {
                             arm.moveSlides(-0.7);
                         }
-                        bucket.tilt(0);
+                        bucket.tilt(0, 0);
                         swerve.setAuton();
                         break;
                     case UP:
@@ -377,6 +390,7 @@ public abstract class Robot extends LinearOpMode {
                 }
                 break;
             case DRONE:
+                bucket.tilt(0, 1);
                 if (arm.getPosition() < 100) {
                     arm.tiltArm(droneTilt);
                 } else {
@@ -393,8 +407,6 @@ public abstract class Robot extends LinearOpMode {
         telemetry.addData("fsm looptimes", (timer.nanoseconds() - fsmread)/1e6);
 
         telemetry.update();
-
-
     }
 
     public states getState() { return transferStates; }
@@ -518,7 +530,7 @@ public abstract class Robot extends LinearOpMode {
         } else {
             arm.extend(ArmIVK.getSlideExtension());
             arm.tiltArm(ArmIVK.getArmAngle());
-            bucket.tilt(ArmIVK.getBucketTilt());
+            bucket.tilt(1, ArmIVK.getBucketTilt());
         }
     }
 
@@ -552,7 +564,7 @@ public abstract class Robot extends LinearOpMode {
                     }
                     break;
             }
-            bucket.tilt(ArmIVK.getBucketTilt());
+            bucket.tilt(0, ArmIVK.getBucketTilt());
         }
     }
 
@@ -576,7 +588,7 @@ public abstract class Robot extends LinearOpMode {
             case EXTENDED:
                 arm.moveSlides(-0.7);
                 arm.moveTilt(0);
-                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+                //bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
                 if (arm.getPosition() < 100) {
                     safeFSM = safeGoToArmIVKFSM.RETRACTED;
                 }
@@ -584,7 +596,7 @@ public abstract class Robot extends LinearOpMode {
             case RETRACTED:
                 arm.moveSlides(0);
                 arm.tiltArm(ArmIVK.getArmAngle());
-                bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
+                //bucket.tilt(ArmIVK.getBucketTilt(Math.toRadians(arm.getTilt()), Math.PI));
                 if (arm.isTilted(1) && arm.getTiltVelocity() < 0.2) {
                     safeFSM = safeGoToArmIVKFSM.TILTED;
                 }
@@ -592,7 +604,7 @@ public abstract class Robot extends LinearOpMode {
             case TILTED:
                 arm.tiltArm(ArmIVK.getArmAngle());
                 arm.extend(ArmIVK.getSlideExtension());
-                bucket.tilt(ArmIVK.getBucketTilt());
+                bucket.tilt(1, ArmIVK.getBucketTilt());
                 break;
         }
         /*if (arm.getPosition() > 100 && !arm.isTilted(10)) {

@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import static org.firstinspires.ftc.teamcode.cachinghardwaredevice.constants.ACCEPTABLE_SERVO_POS_DELTA;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DigitalChannelController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -16,18 +18,20 @@ public class Bucket {
     private CachingServo leftLatch;
     private CachingServo rightLatch;
     private CachingServo bucketTilt;
+    private CachingServo bucketWrist;
 
-    private APDS9960 leftSensor;
-    private APDS9960 rightSensor;
+    private DigitalChannel leftSensor;
+    private DigitalChannel rightSensor;
 
     private boolean leftHasPixels = false;
     private boolean rightHasPixels = false;
     private int numPixels = 0;
 
     // TODO: empirically find all of these
-    public static double latchPos = 0.7;
-    public static double unlatchPos = 0.1;
-    public static double doublePixelPos = 0.3;
+    public static double latchPosLeft = 0;
+    public static double latchPosRight = 0.05;
+    public static double unlatchPos = 0.8;
+    public static double doublePixelPos = 0.8;
     public static double intakePos = 0.2;
     public static double outtakePos = 1;
     public static int intakeMaxProx = 240;
@@ -36,15 +40,25 @@ public class Bucket {
     private ElapsedTime rightPixelInTimer = new ElapsedTime();
     int leftprox = 0, rightprox = 0;
 
-    public boolean disableAutoLatch = false;
+    public boolean disableAutoLatch = true;
+    public static boolean invertBar = true;
+    public static boolean invertWrist = true;
 
     public Bucket(HardwareMap hmap) {
         leftLatch = new CachingServo(hmap.servo.get("leftLatch"));
         rightLatch = new CachingServo(hmap.servo.get("rightLatch"));
         bucketTilt = new CachingServo(hmap.servo.get("bucketTilt"));
-        leftSensor = APDS9960.fromHMap(hmap, "bucketLeftSensor");
-        rightSensor = APDS9960.fromHMap(hmap, "bucketRightSensor");
+        bucketWrist = new CachingServo(hmap.servo.get("lifter"));
+        leftSensor = hmap.digitalChannel.get("RbucketBeam");
+        rightSensor = hmap.digitalChannel.get("LbucketBeam");
+        leftSensor.setMode(DigitalChannel.Mode.INPUT);
+        rightSensor.setMode(DigitalChannel.Mode.INPUT);
         rightLatch.setDirection(Servo.Direction.REVERSE);
+        bucketTilt.scaleRange(0, 0.5);
+        if (invertBar)
+            bucketTilt.setDirection(Servo.Direction.REVERSE);
+        if (invertWrist)
+            bucketWrist.setDirection(Servo.Direction.REVERSE);
     }
 
     /**
@@ -54,10 +68,8 @@ public class Bucket {
 
        // leftprox = leftSensor.getProximity();
        // rightprox = rightSensor.getProximity();
-        leftprox = 0;
-        rightprox = 0;
-        leftHasPixels = leftprox < intakeMaxProx;
-        rightHasPixels = rightprox < intakeMaxProx;
+        leftHasPixels = !leftSensor.getState();
+        rightHasPixels = !rightSensor.getState();
         if (!leftHasPixels) {
             leftPixelInTimer.reset();
         }
@@ -76,8 +88,8 @@ public class Bucket {
     }
 
     public void latch() {
-        leftLatch.setPosition(latchPos);
-        rightLatch.setPosition(latchPos);
+        leftLatch.setPosition(latchPosLeft);
+        rightLatch.setPosition(latchPosRight);
 
 
 
@@ -93,11 +105,11 @@ public class Bucket {
     }
 
     public boolean leftIsLatched() {
-        return compare(leftLatch.getPosition(), latchPos, ACCEPTABLE_SERVO_POS_DELTA);
+        return compare(leftLatch.getPosition(), latchPosLeft, ACCEPTABLE_SERVO_POS_DELTA);
     }
 
     public boolean rightIsLatched() {
-        return compare(rightLatch.getPosition(), latchPos, ACCEPTABLE_SERVO_POS_DELTA);
+        return compare(rightLatch.getPosition(), latchPosRight, ACCEPTABLE_SERVO_POS_DELTA);
     }
 
     /**
@@ -114,12 +126,12 @@ public class Bucket {
         if (!latchLeft) {
             leftLatch.setPosition(unlatchPos);
         } else {
-            leftLatch.setPosition(latchPos);
+            leftLatch.setPosition(latchPosLeft);
         }
         if (!latchRight) {
             rightLatch.setPosition(unlatchPos);
         } else {
-            rightLatch.setPosition(latchPos);
+            rightLatch.setPosition(latchPosRight);
         }
     }
 
@@ -127,7 +139,7 @@ public class Bucket {
         if (!latchLeft) {
             rightLatch.setPosition(unlatchPos);
         } else {
-            rightLatch.setPosition(latchPos);
+            rightLatch.setPosition(latchPosRight);
         }
     }
 
@@ -135,7 +147,7 @@ public class Bucket {
         if (!latchRight) {
             leftLatch.setPosition(unlatchPos);
         } else {
-            leftLatch.setPosition(latchPos);
+            leftLatch.setPosition(latchPosLeft);
         }
     }
 
@@ -145,12 +157,12 @@ public class Bucket {
     public void smartLatch() {
         if (!disableAutoLatch) {
             if (leftHasPixels && leftPixelInTimer.seconds() > pixelInDelaySeconds) {
-                leftLatch.setPosition(latchPos);
+                leftLatch.setPosition(latchPosLeft);
             } else {
                 leftLatch.setPosition(unlatchPos);
             }
             if (rightHasPixels && rightPixelInTimer.seconds() > pixelInDelaySeconds) {
-                rightLatch.setPosition(latchPos);
+                rightLatch.setPosition(latchPosRight);
             } else {
                 rightLatch.setPosition(unlatchPos);
             }
@@ -182,7 +194,12 @@ public class Bucket {
     }
 
     public void tilt(double pos) {
-        bucketTilt.setPosition(pos);
+        this.tilt(0.4, pos);
+    }
+
+    public void tilt(double tilt, double wrist) {
+        bucketTilt.setPosition(tilt);
+        bucketWrist.setPosition(wrist);
     }
 
     private boolean compare(double v1, double v2, double tol) {

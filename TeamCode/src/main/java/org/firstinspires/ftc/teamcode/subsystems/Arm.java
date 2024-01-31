@@ -57,8 +57,8 @@ public class Arm {
      */
     public static double STALL_VELOCITY = 0.000001;
 
-    private SquIDF slideIQID = new SquIDF(slideP,0,0, 0, 0, tiltDec);
-    private SquIDF tiltIQID = new SquIDF(tiltP,0,0, 0, 0, 0.1);
+    private SquIDF slideIQID = new SquIDF(slideP,0,0, 0, 0.1, tiltDec);
+    private SquIDF tiltIQID = new SquIDF(tiltP,0,0, 0, 0.1, 0.1);
 
     private int slidePos = 0;
     private int coaxialCorrection = 0;
@@ -87,7 +87,7 @@ public class Arm {
         this.slideMotor1 = new CachingDcMotor(hmap.dcMotor.get("slides1"));
         this.tiltMotor = new CachingMotor(hmap, "tilt");
         this.tiltSensor = new AS5600(hmap, "tiltSensor");
-        this.lifter = new CachingServo(hmap.servo.get("lifter"));
+        this.lifter = new CachingServo(hmap.servo.get("dummy"));
         this.bucketUltrasonic = hmap.analogInput.get("bucketUltrasonic");
 
         slideMotor1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
