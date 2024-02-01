@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.pathutils.AutonomousWaypoint;
 import org.firstinspires.ftc.teamcode.pathutils.Point;
 import org.firstinspires.ftc.teamcode.subsystems.ArmIVK;
 import org.firstinspires.ftc.teamcode.subsystems.Robot;
+import org.firstinspires.ftc.teamcode.vision.StackDetectionProcessor;
 import org.firstinspires.ftc.teamcode.vision.TeamPropProcessor;
 import org.firstinspires.ftc.teamcode.vision.UndistortProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -86,6 +87,7 @@ public abstract class AutoBase extends Robot {
 
     private VisionPortal propPortal;
     private TeamPropProcessor propProcessor;
+    public StackDetectionProcessor stackProc;
 
     public enum propPositions {
         BACKSTAGE,
@@ -100,6 +102,7 @@ public abstract class AutoBase extends Robot {
     //public UndistortProcessor undistort;
 
     public VisionPortal tagPortal;
+    public VisionPortal linePortal;
 
     // used for reference
     private boolean isRed = false;
@@ -1114,7 +1117,7 @@ public abstract class AutoBase extends Robot {
         builder.setCameraResolution(new Size(640, 480));
 
         // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
-        builder.enableLiveView(true);
+        builder.enableLiveView(false);
 
         // Set the stream format; MJPEG uses less bandwidth than default YUY2.
         builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
@@ -1134,6 +1137,35 @@ public abstract class AutoBase extends Robot {
         for (VisionProcessor processor : processors) {
             propPortal.setProcessorEnabled(processor, true);
         }
+        //FtcDashboard.getInstance().startCameraStream(propProcessor,0);
+
+    }
+    public void initStackPortal() {
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        builder.setCamera(hardwareMap.get(WebcamName.class, "bucket camera"));
+
+        // Choose a camera resolution. Not all cameras support all resolutions.
+        builder.setCameraResolution(new Size(640, 480));
+
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        builder.enableLiveView(true);
+
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+
+
+        // Choose whether or not LiveView stops if no processors are enabled.
+        // If set "true", monitor shows solid orange screen if no processors enabled.
+        // If set "false", monitor shows camera view without annotations.
+        builder.setAutoStopLiveView(false);
+
+        builder.addProcessor(stackProc);
+
+        linePortal = builder.build();
+        linePortal.setProcessorEnabled(stackProc, true);
+
         //FtcDashboard.getInstance().startCameraStream(propProcessor,0);
 
     }

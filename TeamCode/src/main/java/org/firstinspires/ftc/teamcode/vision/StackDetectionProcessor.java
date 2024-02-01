@@ -34,6 +34,7 @@ public class StackDetectionProcessor implements VisionProcessor {
     Mat HSV = new Mat();
     Mat thresh = new Mat();
     Bitmap copy;
+    int x = 0;
 
     @Override
     public void init(int width, int height, CameraCalibration calib) {
@@ -89,6 +90,7 @@ public class StackDetectionProcessor implements VisionProcessor {
 
         copy = Bitmap.createBitmap(input.width(), input.height(), Bitmap.Config.RGB_565);
         Utils.matToBitmap(input, copy);
+        x = Imgproc.boundingRect(biggest).x- input.width();
 
 
         return null;
@@ -110,5 +112,8 @@ public class StackDetectionProcessor implements VisionProcessor {
         } else {
             return 14343;
         }
+    }
+    public int getX() {
+        return x;
     }
 }

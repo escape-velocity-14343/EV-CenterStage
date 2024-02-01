@@ -18,7 +18,7 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_TO_BUCKET_RADIANS = -0.9;
     public static double BUCKET_LENGTH_INCHES = 4;
     public static double MAX_BUCKET_TILT_RADIANS = 4.45058959259;
-    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = 4.3;
+    public static double BUCKET_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = 4.8;
     public static double SCORING_BUCKET_OFFSET = -1;
     public static double LIFTER_LENGTH = 3.3464;
     public static double MAX_LIFTER_TILT_RADIANS = 5.175414359;
@@ -32,11 +32,11 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
     public static double BUCKET_OFFSET_X = 0;
     public static double BUCKET_OFFSET_Y = 0;
-    public static double INTAKE_HEIGHT_OFFSET = 1.2;
+    public static double INTAKE_HEIGHT_OFFSET = 0;
     public static double outtakebucketangle = -120;
     public static double BAR_LENGTH = 3.043;
     public static double MAX_BAR_TILT_RADIANS = Math.toRadians(90);
-    public static double BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.8;
+    public static double BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -1;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;

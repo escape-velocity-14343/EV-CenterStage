@@ -16,11 +16,11 @@ public class StackDetectionTest extends Robot {
     @Override
     public void runOpMode() {
         //stackdetect.setAngle(60);
-        initialize();
+
         initPortal();
         waitForStart();
         while (opModeIsActive()) {
-
+            telemetry.addData("aosidjfaosdjfoij",stackdetect.getMiddle());
         }
     }
 
