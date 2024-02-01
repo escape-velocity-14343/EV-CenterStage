@@ -75,7 +75,7 @@ public class StackLineDetectionProcessor implements VisionProcessor {
             startCol = maxTail;
             endCol = maxHead;
         } catch (Exception e) {
-
+            Log.println(Log.WARN, "StackLineDetectionProcessor", "Unresolved Exception: " + e.getMessage());
         }
 
         return null;
