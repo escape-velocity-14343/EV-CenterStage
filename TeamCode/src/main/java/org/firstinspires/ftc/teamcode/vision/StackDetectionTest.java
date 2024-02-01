@@ -12,7 +12,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 @TeleOp
 public class StackDetectionTest extends Robot {
     private VisionPortal visionportal;
-    private StackLineDetectionProcessor stackdetect = new StackLineDetectionProcessor();
+    private StackDetectionProcessor stackdetect = new StackDetectionProcessor();
     @Override
     public void runOpMode() {
         //stackdetect.setAngle(60);
@@ -20,7 +20,8 @@ public class StackDetectionTest extends Robot {
         initPortal();
         waitForStart();
         while (opModeIsActive()) {
-            telemetry.addData("aosidjfaosdjfoij",stackdetect.getMiddle());
+            telemetry.addData("aosidjfaosdjfoij",stackdetect.getX());
+            telemetry.update();
         }
     }
 

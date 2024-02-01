@@ -38,6 +38,7 @@ public class CycleTest extends AutoBase {
     public void runOpMode() {
         initialize();
         while (opModeInInit()) {
+            timer.reset();
             //arm.setLifterHeight(0);
             bucket.unlatch();
             bucket.tilt(ArmIVK.getBucketTilt(arm.getTilt(), Math.PI));
@@ -77,15 +78,15 @@ public class CycleTest extends AutoBase {
                 case CORRECTING:
                     swerve.driveRobotCentric(0,0, stackProc.getX());
                     arm.ultrasonicExtend(ultrasonicDistance);
-                    if (SwerveModule.compare(stackProc.getX(),0,50)&&SwerveModule.compare(arm.getUltrasonicInches(),ultrasonicDistance,ultrasonicTolerance)) {
+                    if (SwerveModule.compare(stackProc.getX(),0,20)&&SwerveModule.compare(arm.getUltrasonicInches(),ultrasonicDistance,ultrasonicTolerance)) {
                         cycleEnum = cyclestate.INTAKING;
                     }
                     // TODO: add this
                     //cycleEnum = cyclestate.INTAKING;
                     break;
                 case INTAKING:
-                    arm.extendInches(extendInches);
-                    if (arm.isDone(10)) {
+                    arm.ultrasonicExtend(extendInches-5);
+                    if (SwerveModule.compare(arm.getUltrasonicInches(),ultrasonicDistance,ultrasonicTolerance)||bucket.getNumPixels()>0) {
                         bucket.tilt(ArmIVK.getBarTilt(), ArmIVK.getBucketTilt());
                         if (timer.seconds() > 1) {
                             cycleEnum = cyclestate.INTAKING2;

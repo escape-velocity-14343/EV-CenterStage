@@ -87,7 +87,7 @@ public abstract class AutoBase extends Robot {
 
     private VisionPortal propPortal;
     private TeamPropProcessor propProcessor;
-    public StackDetectionProcessor stackProc;
+    public StackDetectionProcessor stackProc = new StackDetectionProcessor();
 
     public enum propPositions {
         BACKSTAGE,
