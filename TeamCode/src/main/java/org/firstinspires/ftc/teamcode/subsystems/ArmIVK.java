@@ -32,11 +32,11 @@ public class ArmIVK {
     public static double BUCKET_OFFSET_PIVOT_OFFSET_Y = 0;
     public static double BUCKET_OFFSET_X = 0;
     public static double BUCKET_OFFSET_Y = 0;
-    public static double INTAKE_HEIGHT_OFFSET = 0;
+    public static double INTAKE_HEIGHT_OFFSET = 1.6;
     public static double outtakebucketangle = -120;
     public static double BAR_LENGTH = 3.043;
     public static double MAX_BAR_TILT_RADIANS = Math.toRadians(90);
-    public static double BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -1;
+    public static double BAR_OFFSET_TO_BUCKET_SERVO_RANGE_OFFSET_RADIANS = -0.6;
 
     private static double bucketTilt = 0;
     private static int slideExtension = 0;

@@ -101,7 +101,7 @@ public abstract class Robot extends LinearOpMode {
     /**
      * PID Config.
      */
-    public static double kHeadingP = 0.07;
+    public static double kHeadingP = 0.1;
     public static double kHeadingI = 0;
     public static double kHeadingD = 0;
     public static double kHeadingF = 0.05;
@@ -109,7 +109,7 @@ public abstract class Robot extends LinearOpMode {
     public static double headingDec = 1;
     public static double headingTol = 0.1;
 
-    public static double kPosQ = 0.01;
+    public static double kPosQ = 0.02;
     public static double kPosI = 0;
     public static double kPosD = 0;
     private SquIDController poscontroller = new SquIDController(kPosQ, kPosI, kPosD);
@@ -292,6 +292,7 @@ public abstract class Robot extends LinearOpMode {
                         }
                         //arm.outtakeLifter();
                         arm.setLifterHeight(intakeLifterHeight);
+
                         // tilt if the arm is in a reasonable position to tilt
                         bucket.tilt(ArmIVK.getBarTilt(), ArmIVK.getBucketTilt());
                         bucket.smartLatch();
@@ -700,7 +701,7 @@ public abstract class Robot extends LinearOpMode {
     }
     public static double stoppedAngularVelo = 0.0001;
     public boolean isStoppedAtPoint() {
-        return atPoint()&&odometry.getAnglularVelocity()<stoppedAngularVelo;
+        return atPoint()&&odometry.getAnglularVelocity()<stoppedAngularVelo&&!odometry.isMoving();
     }
 }
 
