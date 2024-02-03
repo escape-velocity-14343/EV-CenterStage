@@ -62,7 +62,7 @@ public class CompTele extends Robot {
                 } else if (gamepad1c.right_trigger > 0  && arm.getPosition() < 1700) {
                     arm.moveSlides(gamepad1c.right_trigger);
                 } else {
-                    arm.moveSlides(0);
+                    arm.moveSlides(0.3);
                 }
 
                 if (gamepad1c.square&&!lastgamepad1c.square) {
